@@ -35,28 +35,30 @@
   --accent-hover: #ffbb4a;
   --accent-weak: rgba(244, 165, 36, 0.12);
   --accent-ink: #ffc76b;
-  --link: #79b8f2;
+  --link: #ffc76b;
   --focus: #f4a524;
 
   --bar: #050608;
   --bar-text: #a19c91;
 
-  --pos: #45c48b;
-  --pos-weak: rgba(69, 196, 139, 0.13);
-  --neg: #f06a5d;
-  --neg-weak: rgba(240, 106, 93, 0.13);
+  /* diverging poles, CVD-validated (deutan dE 20): positive blue, negative coral */
+  --pos: #5aa9e6;
+  --pos-weak: rgba(90, 169, 230, 0.14);
+  --neg: #f2785c;
+  --neg-weak: rgba(242, 120, 92, 0.14);
+  --div-mid: #2a2e36;
   --neu: #8d96a6;
   --neu-weak: rgba(141, 150, 166, 0.14);
   --warn: #f4a524;
   --warn-weak: rgba(244, 165, 36, 0.12);
-  --info: #79b8f2;
-  --info-weak: rgba(121, 184, 242, 0.12);
+  --info: #9aa3b2;
+  --info-weak: rgba(154, 163, 178, 0.12);
 
   --chart-grid: #1e222a;
   --chart-axis: #7d796f;
   --chart-zero: #3b414d;
-  --chart-band: rgba(121, 184, 242, 0.13);
-  --chart-line: #79b8f2;
+  --chart-band: rgba(236, 231, 220, 0.09);
+  --chart-line: #ece7dc;
   --chart-focus-line: #f4a524;
 
   --elev-pop: 0 18px 48px -16px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -87,28 +89,29 @@
   --accent-hover: #9a5500;
   --accent-weak: rgba(196, 111, 0, 0.1);
   --accent-ink: #8f4f00;
-  --link: #1f5fbf;
+  --link: #8f4f00;
   --focus: #c46f00;
 
   --bar: #15171c;
   --bar-text: #b9b5ab;
 
-  --pos: #0f7a4a;
-  --pos-weak: rgba(15, 122, 74, 0.1);
-  --neg: #b8261a;
-  --neg-weak: rgba(184, 38, 26, 0.09);
+  --pos: #1f6fc4;
+  --pos-weak: rgba(31, 111, 196, 0.1);
+  --neg: #c4462d;
+  --neg-weak: rgba(196, 70, 45, 0.09);
+  --div-mid: #e3e6ea;
   --neu: #5f6875;
   --neu-weak: rgba(95, 104, 117, 0.1);
   --warn: #9a5500;
   --warn-weak: rgba(196, 111, 0, 0.1);
-  --info: #1f5fbf;
-  --info-weak: rgba(31, 95, 191, 0.09);
+  --info: #5b616c;
+  --info-weak: rgba(91, 97, 108, 0.09);
 
   --chart-grid: #e4e7eb;
   --chart-axis: #6b7280;
   --chart-zero: #aab1bc;
-  --chart-band: rgba(31, 95, 191, 0.11);
-  --chart-line: #1f5fbf;
+  --chart-band: rgba(21, 23, 28, 0.07);
+  --chart-line: #15171c;
   --chart-focus-line: #c46f00;
 
   --elev-pop: 0 18px 48px -16px rgba(20, 24, 32, 0.35), 0 0 0 1px rgba(20, 24, 32, 0.06);
