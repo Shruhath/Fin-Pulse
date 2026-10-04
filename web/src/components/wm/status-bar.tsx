@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -46,7 +46,7 @@ export function StatusBar({ corpus, preview }: { corpus: CorpusStatus | null; pr
         })}
       </nav>
 
-      <p className="hidden min-w-0 flex-1 items-center justify-center truncate text-center xl:flex" aria-live="polite">
+      <p className="hidden min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap 2xl:flex" aria-live="polite">
         {focusedTile ? (
           <>
             <span className="text-accent">{focusedTile.cls}</span>
@@ -159,14 +159,17 @@ function WindowSwitch() {
 }
 
 /** IST clock and NSE regular-session state (Mon–Fri 09:15–15:30; exchange holidays not modelled). */
+const tick = (cb: () => void) => {
+  const id = window.setInterval(cb, 15_000);
+  return () => window.clearInterval(id);
+};
+// minute-stable snapshot so React sees an unchanged value between ticks
+const nowSnap = () => Math.floor(Date.now() / 15_000) * 15_000;
+
 function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const id = window.setInterval(() => setNow(new Date()), 15_000);
-    return () => window.clearInterval(id);
-  }, []);
-  if (!now) return <Item className="hidden w-[148px] sm:flex">{null}</Item>;
+  const ts = useSyncExternalStore(tick, nowSnap, () => 0);
+  if (!ts) return <Item className="hidden w-[148px] sm:flex">{null}</Item>;
+  const now = new Date(ts);
   const ist = new Date(now.getTime() + (5.5 * 60 + now.getTimezoneOffset()) * 60_000);
   const mins = ist.getHours() * 60 + ist.getMinutes();
   const weekday = ist.getDay() >= 1 && ist.getDay() <= 5;
