@@ -35,7 +35,7 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
     if (!svg || size.w === 0) return;
     const M = { top: 28, right: 24, bottom: 34, left: Math.min(220, size.w * 0.38) };
     const innerW = size.w - M.left - M.right;
-    const innerH = size.h - M.top - M.bottom;
+    const innerH = Math.min(size.h - M.top - M.bottom, models.length * 76);
     const x = d3.scaleLinear().domain([0.4, 1]).range([0, innerW]);
     const y = d3.scaleBand().domain(models).range([0, innerH]).padding(0.4);
     const root = d3.select(svg);
