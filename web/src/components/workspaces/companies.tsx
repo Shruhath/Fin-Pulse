@@ -29,7 +29,7 @@ export function CompaniesWorkspace({ entities, detail }: { entities: EntityRow[]
           id: "company-chart",
           cls: "chart",
           title: e ? `${e.name.toLowerCase()} · sentiment` : "company · sentiment",
-          weight: 1.5,
+          weight: 2.3,
           flush: true,
           mobileMinH: 300,
           node: e ? (
@@ -69,7 +69,7 @@ export function CompaniesWorkspace({ entities, detail }: { entities: EntityRow[]
           id: "company-events",
           cls: "log",
           title: "events",
-          weight: 1,
+          weight: 0.9,
           meta: <span className="font-mono">{detail?.events.length ?? 0}</span>,
           node:
             detail && detail.events.length > 0 ? (
@@ -86,7 +86,7 @@ export function CompaniesWorkspace({ entities, detail }: { entities: EntityRow[]
           id: "company-mentions",
           cls: "grep",
           title: "mentions",
-          weight: 1,
+          weight: 0.9,
           flush: true,
           meta: <span className="font-mono">{detail?.mentions.length ?? 0}</span>,
           node: detail ? <Mentions mentions={detail.mentions} /> : <Empty>Pick a company.</Empty>,

@@ -28,7 +28,7 @@ export function EventsWorkspace({ events, windowDays, windowLabel }: { events: E
           title: `event timeline · ${windowLabel}`,
           flush: true,
           mobileMinH: 300,
-          meta: <span className="hidden font-mono sm:inline">▲ positive ▼ negative ● neutral</span>,
+          meta: <ShapeLegend />,
           node: events.length ? (
             <div className="h-full px-1 pt-2">
               <EventTimeline events={shown} selectedId={selectedId} onSelect={setSelectedId} windowDays={windowDays} />
@@ -55,6 +55,24 @@ export function EventsWorkspace({ events, windowDays, windowLabel }: { events: E
         },
       ]}
     />
+  );
+}
+
+function ShapeLegend() {
+  const item = (d: string, fill: string, label: string) => (
+    <span className="flex items-center gap-1">
+      <svg viewBox="0 0 10 10" className="size-2.5" aria-hidden="true">
+        <path d={d} fill={fill} />
+      </svg>
+      {label}
+    </span>
+  );
+  return (
+    <span className="hidden items-center gap-3 font-mono sm:flex">
+      {item("M5 1 9.5 9h-9Z", "var(--pos)", "positive")}
+      {item("M5 9 .5 1h9Z", "var(--neg)", "negative")}
+      {item("M5 1.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z", "var(--neu)", "neutral")}
+    </span>
   );
 }
 
