@@ -32,7 +32,7 @@ export function FilingsFeed({ filings, selectedId }: { filings: FilingItem[]; se
             onPointerLeave={() => setFocus({ entityId: null, day: null })}
             className={clsx(
               "relative px-3 py-2.5 transition-[background-color,opacity] duration-150",
-              selected ? "bg-accent-weak shadow-[inset_2px_0_0_var(--accent)]" : linked ? "bg-surface-2" : "hover:bg-surface-2",
+              selected ? "bg-accent-weak outline outline-1 -outline-offset-1 outline-ring" : linked ? "bg-surface-2" : "hover:bg-surface-2",
               dim && "opacity-50",
             )}
           >

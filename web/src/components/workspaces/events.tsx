@@ -122,7 +122,7 @@ function EventLog({
                 aria-pressed={selectedId === e.id}
                 className={clsx(
                   "grid w-full grid-cols-[16px_1fr] gap-x-2 px-3 py-2 text-left transition-colors",
-                  selectedId === e.id ? "bg-accent-weak shadow-[inset_2px_0_0_var(--accent)]" : entityId === e.entityId ? "bg-surface-2" : "hover:bg-surface-2",
+                  selectedId === e.id ? "bg-accent-weak outline outline-1 -outline-offset-1 outline-ring" : entityId === e.entityId ? "bg-surface-2" : "hover:bg-surface-2",
                 )}
               >
                 <SentimentIcon sentiment={e.sentiment} className="mt-0.5 size-3.5" />

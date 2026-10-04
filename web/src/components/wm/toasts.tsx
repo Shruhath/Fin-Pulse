@@ -9,17 +9,17 @@ import clsx from "clsx";
 import { useWM, type Toast } from "./wm";
 
 const TONE: Record<NonNullable<Toast["tone"]>, string> = {
-  info: "border-l-info",
-  ok: "border-l-pos",
-  warn: "border-l-warn",
-  error: "border-l-neg",
+  info: "border-info/60",
+  ok: "border-pos/60",
+  warn: "border-warn/60",
+  error: "border-neg/60",
 };
 
 /** Notification daemon: stacked, top-right, under the bar. */
 export function Toasts() {
   const { toasts, dismiss } = useWM();
   return (
-    <div aria-live="polite" className="pointer-events-none fixed top-[calc(var(--bar-h)+12px)] right-3 z-50 flex w-[min(340px,calc(100vw-24px))] flex-col gap-2">
+    <div aria-live="polite" className="pointer-events-none fixed right-3 bottom-3 z-50 flex w-[min(340px,calc(100vw-24px))] flex-col gap-2">
       {toasts.map((t) => (
         <ToastCard key={t.id} toast={t} onClose={() => dismiss(t.id)} />
       ))}
@@ -43,7 +43,7 @@ function ToastCard({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     <div
       ref={ref}
       role="status"
-      className={clsx("pointer-events-auto border border-l-2 border-line bg-surface p-2.5 shadow-pop", TONE[toast.tone ?? "info"])}
+      className={clsx("pointer-events-auto border bg-surface p-2.5 shadow-pop", TONE[toast.tone ?? "info"])}
     >
       <div className="flex items-center gap-2 font-mono text-2xs text-ink-3">
         <span>{toast.app}</span>

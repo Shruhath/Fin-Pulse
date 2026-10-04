@@ -82,10 +82,10 @@ export function CompaniesTable({ entities, selectedId }: { entities: EntityRow[]
               aria-selected={selected || undefined}
               className={clsx(
                 "cursor-pointer border-b border-line transition-colors last:border-0",
-                selected ? "bg-accent-weak" : lit ? "bg-surface-2" : "hover:bg-surface-2",
+                selected ? "bg-accent-weak outline outline-1 -outline-offset-1 outline-ring" : lit ? "bg-surface-2" : "hover:bg-surface-2",
               )}
             >
-              <td className={clsx("relative px-3 py-2", selected && "shadow-[inset_2px_0_0_var(--accent)]")}>
+              <td className="relative px-3 py-2">
                 <Link
                   href={`/companies/${e.id}`}
                   scroll={false}
