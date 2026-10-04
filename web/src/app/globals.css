@@ -1,26 +1,267 @@
 @import "tailwindcss";
 
+/* Theme follows the html[data-theme] attribute set by next-themes. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Tokens
+   Light: paper-white work canvas under a deep navy shell.
+   Dark: the same structure at night; the shell stays the darkest plane.
+   Sentiment colours are never used alone: every state also carries an icon.
+--------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --surface-3: #e8ebf0;
+  --border: #e2e5ea;
+  --border-strong: #cbd1da;
+
+  --text: #0f1726;
+  --text-2: #475266;
+  --text-3: #5f6b7e;
+  --text-inverse: #ffffff;
+
+  --accent: #1f4fd1;
+  --accent-hover: #183fa8;
+  --accent-weak: #e3eafb;
+  --accent-ink: #163a9b;
+  --focus: #2b5ce6;
+
+  --shell: #0c1a30;
+  --shell-2: #12233f;
+  --shell-border: #1d3150;
+  --shell-text: #b8c4d8;
+  --shell-text-strong: #ffffff;
+  --shell-accent: #7aa2ff;
+
+  --pos: #127a3e;
+  --pos-weak: #e2f3e8;
+  --neg: #b42318;
+  --neg-weak: #fbe6e3;
+  --neu: #5d6878;
+  --neu-weak: #eceff3;
+  --warn: #9a5b00;
+  --warn-weak: #fdf0d9;
+
+  /* chart */
+  --chart-grid: #e7eaef;
+  --chart-axis: #8a94a5;
+  --chart-zero: #9aa3b2;
+  --chart-band: rgba(31, 79, 209, 0.12);
+  --chart-line: #1f4fd1;
+  --chart-focus-line: #0f1726;
+
+  --shadow-pop: 0 8px 24px -8px rgba(12, 26, 48, 0.22), 0 2px 6px -2px rgba(12, 26, 48, 0.12);
+
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 10px;
+
+  --rail-w: 224px;
+  --topbar-h: 56px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b111b;
+  --surface: #101826;
+  --surface-2: #152033;
+  --surface-3: #1b2940;
+  --border: #1f2c42;
+  --border-strong: #2c3c57;
+
+  --text: #e7ebf3;
+  --text-2: #aeb8c9;
+  --text-3: #8d99ad;
+  --text-inverse: #0b111b;
+
+  --accent: #7ea4ff;
+  --accent-hover: #a3bfff;
+  --accent-weak: #1a2a4d;
+  --accent-ink: #b9cdff;
+  --focus: #8fb0ff;
+
+  --shell: #070c15;
+  --shell-2: #0e1727;
+  --shell-border: #172338;
+  --shell-text: #9aa7bd;
+  --shell-text-strong: #f2f5fa;
+  --shell-accent: #8fb0ff;
+
+  --pos: #3cc77e;
+  --pos-weak: #11301f;
+  --neg: #f26b5e;
+  --neg-weak: #3a1714;
+  --neu: #96a2b5;
+  --neu-weak: #1c2637;
+  --warn: #f0b04a;
+  --warn-weak: #33260f;
+
+  --chart-grid: #1a2638;
+  --chart-axis: #7b879b;
+  --chart-zero: #4b5a72;
+  --chart-band: rgba(126, 164, 255, 0.16);
+  --chart-line: #7ea4ff;
+  --chart-focus-line: #e7ebf3;
+
+  --shadow-pop: 0 12px 32px -10px rgba(0, 0, 0, 0.6), 0 2px 8px -2px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-weak: var(--accent-weak);
+  --color-accent-ink: var(--accent-ink);
+  --color-shell: var(--shell);
+  --color-shell-2: var(--shell-2);
+  --color-shell-line: var(--shell-border);
+  --color-shell-ink: var(--shell-text);
+  --color-shell-ink-strong: var(--shell-text-strong);
+  --color-shell-accent: var(--shell-accent);
+  --color-pos: var(--pos);
+  --color-pos-weak: var(--pos-weak);
+  --color-neg: var(--neg);
+  --color-neg-weak: var(--neg-weak);
+  --color-neu: var(--neu);
+  --color-neu-weak: var(--neu-weak);
+  --color-warn: var(--warn);
+  --color-warn-weak: var(--warn-weak);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.05rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.2rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.35rem;
+  --text-md: 1rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.65rem;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.9rem;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 2.25rem;
+
+  --radius-s: var(--radius-s);
+  --radius-m: var(--radius-m);
+  --radius-l: var(--radius-l);
+  --shadow-pop: var(--shadow-pop);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---------------------------------------------------------------------------
+   Base: browser surfaces are part of the design too.
+--------------------------------------------------------------------------- */
+html {
+  background: var(--shell);
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+/* Figures line up in every table and readout. */
+.num,
+table,
+time,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.011em;
+}
+
+/* d3 axes */
+.fp-axis text {
+  fill: var(--text-3);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.fp-axis path,
+.fp-axis line {
+  stroke: var(--chart-grid);
+}
+.fp-axis .domain {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
