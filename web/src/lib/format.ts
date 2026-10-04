@@ -21,3 +21,6 @@ export const fmtTime = (iso: string) => `${IST_TIME.format(new Date(iso))} IST`;
 
 /** Coarse confidence: four segments, because 0.71 and 0.74 are not different readings. */
 export const confidenceStep = (c: number) => (c >= 0.85 ? 4 : c >= 0.7 ? 3 : c >= 0.55 ? 2 : 1);
+
+export const WINDOW_LABEL = { "7d": "last 7 days", "30d": "last 30 days", "90d": "last 90 days" } as const;
+export const WINDOW_DAYS = { "7d": 7, "30d": 30, "90d": 90 } as const;
