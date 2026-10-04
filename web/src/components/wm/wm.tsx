@@ -139,6 +139,12 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
 
   const focusTile = useCallback((id: string | null) => setFocused(id), []);
 
+  // a workspace arrives with its master window focused
+  const registerTiles = useCallback((ts: TileInfo[]) => {
+    setTiles(ts);
+    setFocused((f) => f ?? ts[0]?.id ?? null);
+  }, []);
+
   const moveFocus = useCallback(
     (step: number) => {
       if (tiles.length === 0) return;
@@ -217,7 +223,7 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
       cycleLayout,
       setRatio: (ratio) => save({ ratio }),
       tiles,
-      registerTiles: setTiles,
+      registerTiles,
       focused,
       focusTile,
       moveFocus,
@@ -231,7 +237,7 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
       dismiss,
       flipCaptureRef,
     }),
-    [workspace, direction, current.layout, current.ratio, setLayout, cycleLayout, save, tiles, focused, focusTile, moveFocus, toggleMonocle, launcherOpen, helpOpen, toasts, notify, dismiss],
+    [workspace, direction, current.layout, current.ratio, setLayout, cycleLayout, save, registerTiles, tiles, focused, focusTile, moveFocus, toggleMonocle, launcherOpen, helpOpen, toasts, notify, dismiss],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

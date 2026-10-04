@@ -14,8 +14,8 @@
   color-scheme: dark;
 
   --desk: #08090c;
-  --desk-ink: #1b2130; /* wallpaper isolines */
-  --desk-ink-strong: #262e40;
+  --desk-ink: #232b3d; /* wallpaper isolines */
+  --desk-ink-strong: #34405a;
 
   --bg: #0e1015;
   --surface: #121419;
@@ -66,8 +66,8 @@
   color-scheme: light;
 
   --desk: #c9cfd8;
-  --desk-ink: #b5bdc9;
-  --desk-ink-strong: #a3adbb;
+  --desk-ink: #aab3c1;
+  --desk-ink-strong: #94a0b2;
 
   --bg: #eef0f3;
   --surface: #fbfbfa;
@@ -116,7 +116,7 @@
 
 :root {
   --bar-h: 34px;
-  --gap: 8px;
+  --gap: 10px;
   --rad-s: 2px;
   --rad-m: 3px;
   --rad-l: 4px;
