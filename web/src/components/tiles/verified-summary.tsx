@@ -59,12 +59,7 @@ function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentI
     <li className="grid grid-cols-[16px_1fr] gap-x-2.5 px-3 py-3">
       <Icon className={clsx("mt-0.5 size-4", ink)} aria-label={label} role="img" strokeWidth={2} />
       <div className="min-w-0">
-        <p
-          className={clsx(
-            "text-sm leading-snug text-ink",
-            claim.verification === "contradicted" && "line-through decoration-neg/70 decoration-1",
-          )}
-        >
+        <p className="text-sm leading-snug text-ink">
           {claim.text}
         </p>
         <p className="mt-1 font-mono text-2xs text-ink-3">
