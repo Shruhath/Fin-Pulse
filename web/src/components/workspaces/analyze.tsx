@@ -31,6 +31,8 @@ const API = process.env.NEXT_PUBLIC_FINPULSE_API_URL ?? "http://127.0.0.1:8000";
 
 type Input = { kind: "text"; text: string } | { kind: "url"; url: string } | { kind: "pdf"; file: File };
 
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
 const idle = (): JobStage[] => STAGES.map(({ key }) => ({ key, status: "pending", ms: null, note: null }));
 
 export function AnalyzeWorkspace({ preview, sample }: { preview: boolean; sample: DocumentDetail | null }) {
@@ -64,7 +66,7 @@ export function AnalyzeWorkspace({ preview, sample }: { preview: boolean; sample
             notify({
               app: "pipeline",
               title: "Analysis complete",
-              body: `${sample.spans.length} spans · ${sample.events.length} events · ${c.length} claims, ${c.filter((x) => x.verification === "contradicted").length} contradicted`,
+              body: `${plural(sample.spans.length, "span")} · ${plural(sample.events.length, "event")} · ${plural(c.length, "claim")}, ${c.filter((x) => x.verification === "contradicted").length} contradicted`,
               tone: "ok",
             });
           }
@@ -124,14 +126,14 @@ export function AnalyzeWorkspace({ preview, sample }: { preview: boolean; sample
           id: "pipeline",
           cls: "pipeline",
           title: running ? "running" : result ? "complete" : "idle",
-          weight: 1.9,
+          weight: 2.5,
           node: <Pipeline stages={stages} />,
         },
         {
           id: "result",
           cls: "reader",
           title: result ? result.title.toLowerCase() : "result",
-          weight: 1.7,
+          weight: 1.5,
           node: result ? <DocReader doc={result} /> : <Empty>The analysed document appears here, spans and events marked.</Empty>,
         },
         {
