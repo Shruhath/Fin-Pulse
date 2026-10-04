@@ -1,0 +1,36 @@
+# env and secrets
+.env
+.env.*
+!.env.example
+
+# data, models, caches (never committed)
+data/
+*.parquet
+*.gguf
+*.safetensors
+*.bin
+.cache/
+mlruns/
+wandb/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# node / next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
