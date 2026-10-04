@@ -134,3 +134,140 @@ export const EVENT_GROUP: Record<EventType, EventGroup> = {
   "Pledge Invocation": "Governance",
   "Auditor Resignation": "Governance",
 };
+
+/* ---------- documents, events, summaries ---------- */
+
+/** Character offsets into DocumentDetail.text; the UI renders by slicing. */
+export interface EntitySpan {
+  start: number;
+  end: number;
+  entityId: string;
+  surface: string;
+  sentiment: SentimentLabel;
+  /** calibrated confidence of the entity-sentiment head, 0..1 */
+  confidence: number;
+}
+
+export interface EventRecord extends EventMarker {
+  sentiment: SentimentLabel;
+  confidence: number;
+  /** offsets of the trigger sentence in the source document's text */
+  trigger: { start: number; end: number } | null;
+  arguments: Record<string, string>;
+  extractor: "llm" | "rules";
+}
+
+export interface Evidence {
+  documentId: string;
+  documentTitle: string;
+  source: SourceKind;
+  text: string;
+}
+
+export interface Claim {
+  id: string;
+  text: string;
+  verification: Verification;
+  /** NLI entailment and contradiction probabilities, 0..1 */
+  entail: number;
+  contradict: number;
+  evidence: Evidence | null;
+}
+
+export interface Summary {
+  id: string;
+  scope: "document" | "entity";
+  model: string;
+  generatedAt: string;
+  claims: Claim[];
+}
+
+export interface DocumentDetail extends FilingItem {
+  url: string;
+  words: number;
+  ocr: boolean;
+  text: string;
+  spans: EntitySpan[];
+  events: EventRecord[];
+  summary: Summary | null;
+}
+
+export interface Mention {
+  documentId: string;
+  documentTitle: string;
+  source: SourceKind;
+  publishedAt: string;
+  sentence: string;
+  /** offsets of the mention inside `sentence` */
+  start: number;
+  end: number;
+  sentiment: SentimentLabel;
+  confidence: number;
+}
+
+export interface CompanyDetail {
+  entity: EntityRow;
+  aliases: string[];
+  events: EventRecord[];
+  mentions: Mention[];
+  summary: Summary | null;
+}
+
+/* ---------- evaluation ---------- */
+
+export interface MetricRow {
+  task: "ner" | "sentiment" | "events" | "summaries";
+  model: string;
+  baseline: boolean;
+  dataset: string;
+  /** India gold slice vs public benchmark: the transfer gap is RQ4 */
+  indian: boolean;
+  metrics: Record<string, number>;
+}
+
+export interface Confusion {
+  model: string;
+  dataset: string;
+  labels: SentimentLabel[];
+  /** rows = gold, columns = predicted */
+  matrix: number[][];
+}
+
+export interface ReliabilityBin {
+  confidence: number;
+  accuracy: number;
+  n: number;
+}
+
+export interface EvalReport {
+  generatedAt: string | null;
+  rows: MetricRow[];
+  confusion: Confusion | null;
+  reliability: { before: ReliabilityBin[]; after: ReliabilityBin[]; eceBefore: number; eceAfter: number } | null;
+  agreement: { task: string; kappa: number; items: number }[];
+}
+
+/* ---------- analyze jobs ---------- */
+
+export type StageKey = "ingest" | "parse" | "entities" | "sentiment" | "events" | "summary" | "verify";
+
+export interface JobStage {
+  key: StageKey;
+  status: "pending" | "running" | "done" | "failed" | "skipped";
+  ms: number | null;
+  note: string | null;
+}
+
+export interface Job {
+  id: string;
+  status: "queued" | "running" | "done" | "failed";
+  stages: JobStage[];
+  documentId: string | null;
+}
+
+/* ---------- launcher index ---------- */
+
+export interface SearchIndex {
+  companies: { id: string; name: string; ticker: string }[];
+  filings: { id: string; title: string; source: SourceKind }[];
+}
