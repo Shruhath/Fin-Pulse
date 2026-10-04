@@ -5,11 +5,10 @@ import * as d3 from "d3";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
-import { useFocus } from "@/components/overview/focus";
+import { useFocus } from "@/components/linked/focus";
 import type { EntityRow, EventMarker, MarketPoint } from "@/lib/api/types";
 import { fmtDayLong, fmtInt, fmtScore } from "@/lib/format";
 
-const HEIGHT = 320;
 const M = { top: 14, right: 20, bottom: 58, left: 40 };
 const LANE = 20; // event lane height, between the plot and the date axis
 
@@ -30,18 +29,22 @@ export function MarketChart({ market, events, entities }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(300);
   const { entityId, day: focusDay, setFocus } = useFocus();
 
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setWidth(Math.round(entry.contentRect.width)));
+    const ro = new ResizeObserver(([entry]) => {
+      setWidth(Math.round(entry.contentRect.width));
+      setHeight(Math.max(240, Math.round(entry.contentRect.height)));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   const innerW = Math.max(width - M.left - M.right, 0);
-  const innerH = HEIGHT - M.top - M.bottom;
+  const innerH = height - M.top - M.bottom;
 
   const scales = useMemo(() => {
     const x = d3
@@ -69,7 +72,7 @@ export function MarketChart({ market, events, entities }: Props) {
       .attr("x", 0)
       .attr("y", -M.top)
       .attr("width", innerW)
-      .attr("height", HEIGHT);
+      .attr("height", height);
 
     const g = root.append("g").attr("transform", `translate(${M.left},${M.top})`);
 
@@ -175,7 +178,7 @@ export function MarketChart({ market, events, entities }: Props) {
       .on("pointerleave", () => setFocus({ day: null }));
     // setFocus is stable in behaviour; redrawing on its identity would loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [market, events, scales, innerW, innerH]);
+  }, [market, events, scales, innerW, innerH, height]);
 
   // Dynamic layer: crosshair, focused entity overlay, marker emphasis.
   useEffect(() => {
@@ -282,11 +285,11 @@ export function MarketChart({ market, events, entities }: Props) {
   const tooltipX = focusPoint ? M.left + scales.x(day(focusPoint.t)) : 0;
 
   return (
-    <div ref={wrapRef} className="relative">
+    <div ref={wrapRef} className="relative h-full min-h-[240px]">
       <svg
         ref={svgRef}
         width={width}
-        height={HEIGHT}
+        height={height}
         role="img"
         tabIndex={0}
         onKeyDown={onKeyDown}
@@ -296,17 +299,17 @@ export function MarketChart({ market, events, entities }: Props) {
             ? `Market sentiment, daily mean of company scores on a scale from minus one to plus one. Latest ${fmtScore(last.mean)} with a spread of ${last.std.toFixed(2)}. Use the left and right arrow keys to read each day.`
             : "Market sentiment chart"
         }
-        className="block overflow-visible rounded-s"
+        className="absolute inset-0 block overflow-visible"
       />
       {focusPoint && (
         <div
-          className="pointer-events-none absolute top-2 z-10 w-60 rounded-m border border-line bg-surface p-3 text-xs shadow-pop"
+          className="pointer-events-none absolute top-2 z-10 w-60 border border-line-strong bg-surface p-3 text-xs shadow-pop"
           style={{
             left: tooltipX > width - 260 ? undefined : tooltipX + 14,
             right: tooltipX > width - 260 ? width - tooltipX + 14 : undefined,
           }}
         >
-          <p className="font-semibold text-ink">{fmtDayLong(focusPoint.t)}</p>
+          <p className="font-mono text-2xs font-semibold text-accent-ink">{fmtDayLong(focusPoint.t)}</p>
           <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-ink-2">
             <dt>Market mean</dt>
             <dd className="num text-right font-semibold text-ink">{fmtScore(focusPoint.mean)}</dd>

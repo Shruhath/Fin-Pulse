@@ -19,7 +19,7 @@ export function SentimentIcon({ sentiment, className }: { sentiment: SentimentLa
 export function SentimentPill({ sentiment, score }: { sentiment: SentimentLabel; score?: number }) {
   const { label, ink, wash } = META[sentiment];
   return (
-    <span className={clsx("inline-flex h-6 items-center gap-1 rounded-s px-1.5 text-xs font-semibold", wash, ink)}>
+    <span className={clsx("inline-flex h-5 items-center gap-1 rounded-s px-1.5 font-mono text-xs font-semibold", wash, ink)}>
       <SentimentIcon sentiment={sentiment} />
       <span>{score === undefined ? label : fmtScore(score)}</span>
       {score !== undefined && <span className="sr-only">{label}</span>}
