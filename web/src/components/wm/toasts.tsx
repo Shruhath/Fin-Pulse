@@ -19,7 +19,7 @@ const TONE: Record<NonNullable<Toast["tone"]>, string> = {
 export function Toasts() {
   const { toasts, dismiss } = useWM();
   return (
-    <div aria-live="polite" className="pointer-events-none fixed right-3 bottom-3 z-50 flex w-[min(340px,calc(100vw-24px))] flex-col gap-2">
+    <div aria-live="polite" className="pointer-events-none fixed bottom-3 left-3 z-50 flex w-[min(340px,calc(100vw-24px))] flex-col gap-2">
       {toasts.map((t) => (
         <ToastCard key={t.id} toast={t} onClose={() => dismiss(t.id)} />
       ))}
@@ -33,7 +33,7 @@ function ToastCard({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     () => {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(ref.current, { x: 36, opacity: 0, duration: 0.4, ease: "expo.out" });
+        gsap.from(ref.current, { x: -36, opacity: 0, duration: 0.4, ease: "expo.out" });
       });
       return () => mm.revert();
     },
