@@ -15,7 +15,7 @@ const TONE: Record<NonNullable<Toast["tone"]>, string> = {
   error: "border-neg/60",
 };
 
-/** Notification daemon: stacked, top-right, under the bar. */
+/** Notification daemon: stacked, bottom-left, clear of the claims window. */
 export function Toasts() {
   const { toasts, dismiss } = useWM();
   return (
