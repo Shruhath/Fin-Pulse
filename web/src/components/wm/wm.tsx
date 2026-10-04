@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
@@ -46,7 +46,7 @@ interface WM {
   notify: (t: Omit<Toast, "id">) => void;
   dismiss: (id: number) => void;
   /** Workspace registers a callback that snapshots tile geometry for GSAP Flip. */
-  flipCapture: React.MutableRefObject<(() => void) | null>;
+  flipCaptureRef: React.MutableRefObject<(() => void) | null>;
 }
 
 const Ctx = createContext<WM | null>(null);
@@ -54,9 +54,27 @@ const Ctx = createContext<WM | null>(null);
 type Persisted = Record<string, { layout: LayoutMode; ratio: number }>;
 const KEY = "finpulse.wm.v1";
 
-function readPersisted(): Persisted {
+// Layouts persist per workspace in localStorage, read as an external store so
+// the server render and the first client render agree.
+const EVT = "finpulse-wm-layout";
+function subscribe(cb: () => void) {
+  window.addEventListener("storage", cb);
+  window.addEventListener(EVT, cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener(EVT, cb);
+  };
+}
+function snapshot() {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "{}") as Persisted;
+    return localStorage.getItem(KEY) ?? "{}";
+  } catch {
+    return "{}";
+  }
+}
+function parse(raw: string): Persisted {
+  try {
+    return JSON.parse(raw) as Persisted;
   } catch {
     return {};
   }
@@ -68,45 +86,44 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme, setTheme } = useTheme();
   const workspace = workspaceFor(pathname);
 
-  const [persisted, setPersisted] = useState<Persisted>({});
+  const raw = useSyncExternalStore(subscribe, snapshot, () => "{}");
+  const persisted = useMemo(() => parse(raw), [raw]);
   const [tiles, setTiles] = useState<TileInfo[]>([]);
   const [focused, setFocused] = useState<string | null>(null);
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const flipCapture = useRef<(() => void) | null>(null);
-  const prevIndex = useRef(workspace.n);
+  const flipCaptureRef = useRef<(() => void) | null>(null);
+  const [lastN, setLastN] = useState(workspace.n);
   const [direction, setDirection] = useState(0);
   const toastId = useRef(0);
 
-  useEffect(() => setPersisted(readPersisted()), []);
-
-  useEffect(() => {
-    setDirection(Math.sign(workspace.n - prevIndex.current));
-    prevIndex.current = workspace.n;
+  // Workspace switch: derive slide direction and drop focus during render.
+  if (workspace.n !== lastN) {
+    setDirection(Math.sign(workspace.n - lastN));
+    setLastN(workspace.n);
     setFocused(null);
-  }, [workspace.n]);
+  }
 
   const current = persisted[workspace.key] ?? { layout: workspace.layout as LayoutMode, ratio: workspace.ratio };
 
   const save = useCallback(
     (patch: Partial<{ layout: LayoutMode; ratio: number }>) => {
-      setPersisted((p) => {
-        const next = { ...p, [workspace.key]: { ...(p[workspace.key] ?? { layout: workspace.layout, ratio: workspace.ratio }), ...patch } };
-        try {
-          localStorage.setItem(KEY, JSON.stringify(next));
-        } catch {
-          /* storage unavailable: layout still works for this session */
-        }
-        return next;
-      });
+      const p = parse(snapshot());
+      const next = { ...p, [workspace.key]: { ...(p[workspace.key] ?? { layout: workspace.layout, ratio: workspace.ratio }), ...patch } };
+      try {
+        localStorage.setItem(KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable: the layout still changes for this session below */
+      }
+      window.dispatchEvent(new Event(EVT));
     },
     [workspace.key, workspace.layout, workspace.ratio],
   );
 
   const setLayout = useCallback(
     (layout: LayoutMode) => {
-      flipCapture.current?.();
+      flipCaptureRef.current?.();
       save({ layout });
     },
     [save],
@@ -127,7 +144,7 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
       if (tiles.length === 0) return;
       const i = focused ? tiles.findIndex((t) => t.id === focused) : -1;
       const next = tiles[(i + step + tiles.length) % tiles.length];
-      if (current.layout === "monocle") flipCapture.current?.();
+      if (current.layout === "monocle") flipCaptureRef.current?.();
       setFocused(next.id);
       requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-tile="${next.id}"]`)?.focus({ preventScroll: false }));
     },
@@ -212,7 +229,7 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
       toasts,
       notify,
       dismiss,
-      flipCapture,
+      flipCaptureRef,
     }),
     [workspace, direction, current.layout, current.ratio, setLayout, cycleLayout, save, tiles, focused, focusTile, moveFocus, toggleMonocle, launcherOpen, helpOpen, toasts, notify, dismiss],
   );

@@ -36,7 +36,7 @@ const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefe
  */
 export function Workspace({ tiles }: { tiles: TileSpec[] }) {
   const wm = useWM();
-  const { layout, ratio, focused, registerTiles, flipCapture, direction } = wm;
+  const { layout, ratio, focused, registerTiles, flipCaptureRef, direction } = wm;
   const rootRef = useRef<HTMLDivElement>(null);
   const flipState = useRef<Flip.FlipState | null>(null);
   const ids = tiles.map((t) => t.id).join("|");
@@ -48,14 +48,14 @@ export function Workspace({ tiles }: { tiles: TileSpec[] }) {
   }, [ids, registerTiles]);
 
   useEffect(() => {
-    flipCapture.current = () => {
+    flipCaptureRef.current = () => {
       if (!rootRef.current || reduced()) return;
       flipState.current = Flip.getState(rootRef.current.querySelectorAll("[data-tile]"));
     };
     return () => {
-      flipCapture.current = null;
+      flipCaptureRef.current = null;
     };
-  }, [flipCapture]);
+  }, [flipCaptureRef]);
 
   useLayoutEffect(() => {
     if (!flipState.current) return;
