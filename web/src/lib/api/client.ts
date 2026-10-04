@@ -1,7 +1,7 @@
 import "server-only";
 
 import { previewOverview } from "@/lib/preview/overview";
-import type { Overview, Window } from "./types";
+import type { CorpusStatus, Overview, Window } from "./types";
 
 /**
  * Server-side API access. Pages call these from server components.
@@ -39,4 +39,9 @@ export function parseWindow(value: string | string[] | undefined): Window {
 export async function getOverview(window: Window): Promise<ApiResult<Overview>> {
   if (isPreview()) return { state: "ok", data: previewOverview(window), preview: true };
   return get<Overview>(`/api/overview?window=${window}`);
+}
+
+export async function getStatus(): Promise<ApiResult<CorpusStatus>> {
+  if (isPreview()) return { state: "ok", data: previewOverview("30d").corpus, preview: true };
+  return get<CorpusStatus>("/api/status");
 }
