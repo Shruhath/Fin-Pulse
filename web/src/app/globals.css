@@ -169,6 +169,7 @@
 /* ---------------------------------------------------------------------------
    Base: browser surfaces are part of the design too.
 --------------------------------------------------------------------------- */
+@layer base {
 html {
   background: var(--shell);
   -webkit-text-size-adjust: 100%;
@@ -255,6 +256,8 @@ h3 {
 }
 .fp-axis .domain {
   display: none;
+}
+
 }
 
 @media (prefers-reduced-motion: reduce) {
