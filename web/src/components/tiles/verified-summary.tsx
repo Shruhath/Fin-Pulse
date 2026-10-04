@@ -9,6 +9,8 @@ import { SourceBadge } from "@/components/ui/source-badge";
 import { Empty } from "@/components/ui/states";
 import type { Claim, Summary, Verification } from "@/lib/api/types";
 
+const ORDER: Record<Verification, number> = { contradicted: 0, unverified: 1, entailed: 2 };
+
 const V: Record<Verification, { icon: typeof CheckCircle2; label: string; ink: string }> = {
   entailed: { icon: CheckCircle2, label: "supported by source", ink: "text-pos" },
   contradicted: { icon: XCircle, label: "contradicted by source", ink: "text-neg" },
@@ -40,7 +42,7 @@ export function VerifiedSummary({ summary, currentDocumentId }: { summary: Summa
         <span className="ml-auto truncate">{summary.model}</span>
       </div>
       <ol className="divide-y divide-line">
-        {summary.claims.map((c) => (
+        {[...summary.claims].sort((a, b) => ORDER[a.verification] - ORDER[b.verification]).map((c) => (
           <ClaimRow key={c.id} claim={c} currentDocumentId={currentDocumentId} />
         ))}
       </ol>
@@ -73,7 +75,8 @@ function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentI
         {ev ? (
           <figure
             onPointerEnter={() => setFocus({ span: { documentId: ev.documentId, text: ev.text } })}
-            onPointerLeave={() => setFocus({ span: null })}
+            onPointerLeave={(e) => e.pointerType === "mouse" && setFocus({ span: null })}
+            onClick={() => setFocus({ span: { documentId: ev.documentId, text: ev.text } })}
             className={clsx(
               "mt-2 border border-line px-2.5 py-2 transition-colors",
               lit ? "border-ring/60 bg-ring-soft" : "bg-surface-2",
@@ -83,7 +86,7 @@ function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentI
             <figcaption className="mt-1.5 flex items-center gap-2 font-mono text-2xs text-ink-3">
               <SourceBadge kind={ev.source} />
               {ev.documentId === currentDocumentId ? (
-                <span>this filing · hover to locate</span>
+                <span>this filing · point at it to locate</span>
               ) : (
                 <Link href={`/filings/${ev.documentId}`} className="truncate text-link hover:underline">
                   {ev.documentTitle}
