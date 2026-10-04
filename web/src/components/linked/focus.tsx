@@ -10,8 +10,8 @@ import { createContext, useContext, useMemo, useState } from "react";
 export interface Focus {
   entityId: string | null;
   day: string | null;
-  /** a character range in a document, e.g. the evidence for a claim */
-  span: { documentId: string; start: number; end: number } | null;
+  /** a sentence of a document, e.g. the evidence for a claim; the reader locates it */
+  span: { documentId: string; text: string } | null;
 }
 
 interface FocusCtx extends Focus {
