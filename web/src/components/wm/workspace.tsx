@@ -22,6 +22,8 @@ export interface TileSpec {
   weight?: number;
   /** minimum body height when tiles stack on small screens */
   mobileMinH?: number;
+  /** stacking order on small screens, when it should differ from the tiling order */
+  mobileOrder?: number;
   /** body padding off for edge-to-edge content (tables, charts) */
   flush?: boolean;
   node: React.ReactNode;
@@ -147,12 +149,12 @@ function Tile({ spec, hidden, col, row, gridMode }: { spec: TileSpec; hidden: bo
       onPointerDownCapture={() => focusTile(spec.id)}
       onFocusCapture={() => focusTile(spec.id)}
       className={clsx(
-        "relative flex min-h-0 min-w-0 flex-col border bg-surface outline-none transition-[border-color,box-shadow] duration-200",
+        "relative flex min-h-0 min-w-0 flex-col border bg-surface outline-none transition-[border-color,box-shadow] duration-200 [order:var(--ord,0)] lg:[order:0]",
         isFocused ? "z-[1] border-ring shadow-[0_0_0_1px_var(--focus-ring-soft),0_14px_40px_-18px_rgba(0,0,0,0.7)]" : "border-line",
         !gridMode && "lg:[grid-column:var(--col)] lg:[grid-row:var(--row)]",
         gridMode && spec.id && "lg:[grid-column:auto] lg:[grid-row:auto]",
       )}
-      style={{ "--col": col, "--row": row } as React.CSSProperties}
+      style={{ "--col": col, "--row": row, "--ord": spec.mobileOrder } as React.CSSProperties}
     >
       <header
         className={clsx(

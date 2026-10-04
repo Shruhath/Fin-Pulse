@@ -14,6 +14,7 @@ export function FilingsWorkspace({ filings, doc }: { filings: FilingItem[]; doc:
       tiles={[
         {
           id: "reader",
+          mobileOrder: 1,
           cls: "reader",
           title: doc ? doc.title.toLowerCase() : "reader",
           mobileMinH: 420,
@@ -21,6 +22,7 @@ export function FilingsWorkspace({ filings, doc }: { filings: FilingItem[]; doc:
         },
         {
           id: "filing-list",
+          mobileOrder: 4,
           cls: "feed",
           title: "filings",
           flush: true,
@@ -30,6 +32,7 @@ export function FilingsWorkspace({ filings, doc }: { filings: FilingItem[]; doc:
         },
         {
           id: "inspect",
+          mobileOrder: 3,
           cls: "inspect",
           title: "entities and events",
           weight: 1.2,
@@ -38,6 +41,7 @@ export function FilingsWorkspace({ filings, doc }: { filings: FilingItem[]; doc:
         },
         {
           id: "filing-claims",
+          mobileOrder: 2,
           cls: "claims",
           title: "verified summary",
           weight: 1.3,
