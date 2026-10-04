@@ -98,6 +98,24 @@ export function MarketChart({ market, events, entities }: Props) {
 
     const plot = g.append("g").attr("clip-path", "url(#mc-reveal)").attr("class", "mc-plot");
 
+    // every company's own trace, faint, so the band's spread is visibly made of companies
+    const trace = d3
+      .line<{ t: string; v: number }>()
+      .x((d) => x(day(d.t)))
+      .y((d) => y(d.v))
+      .curve(d3.curveMonotoneX);
+    plot
+      .append("g")
+      .attr("class", "mc-traces")
+      .selectAll("path")
+      .data(entities)
+      .join("path")
+      .attr("d", (e) => trace(e.series.filter((p) => day(p.t) >= x.domain()[0])))
+      .attr("fill", "none")
+      .attr("stroke", "var(--text-3)")
+      .attr("stroke-opacity", 0.22)
+      .attr("stroke-width", 1);
+
     const band = d3
       .area<MarketPoint>()
       .x((d) => x(day(d.t)))
@@ -178,7 +196,7 @@ export function MarketChart({ market, events, entities }: Props) {
       .on("pointerleave", () => setFocus({ day: null }));
     // setFocus is stable in behaviour; redrawing on its identity would loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [market, events, scales, innerW, innerH, height]);
+  }, [market, events, entities, scales, innerW, innerH, height]);
 
   // Dynamic layer: crosshair, focused entity overlay, marker emphasis.
   useEffect(() => {
