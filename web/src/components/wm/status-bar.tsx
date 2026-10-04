@@ -46,15 +46,13 @@ export function StatusBar({ corpus, preview }: { corpus: CorpusStatus | null; pr
         })}
       </nav>
 
-      <p className="hidden min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap 2xl:flex" aria-live="polite">
-        {focusedTile ? (
-          <>
+      <p className="hidden min-w-0 flex-1 items-center justify-center xl:flex" aria-live="polite">
+        {focusedTile && (
+          <span className="min-w-0 truncate">
             <span className="text-accent">{focusedTile.cls}</span>
             <span className="px-1.5 opacity-60">·</span>
-            <span className="truncate text-[#ece7dc]">{focusedTile.title}</span>
-          </>
-        ) : (
-          <span className="opacity-70">press ? for keys · / to launch</span>
+            <span className="text-[#ece7dc]">{focusedTile.title}</span>
+          </span>
         )}
       </p>
 
@@ -66,8 +64,8 @@ export function StatusBar({ corpus, preview }: { corpus: CorpusStatus | null; pr
           aria-label="Open launcher"
         >
           <Search className="size-3.5" />
-          <span className="hidden lg:inline">launch</span>
-          <kbd className="hidden text-[10px] opacity-60 lg:inline">ctrl k</kbd>
+          <span className="hidden 2xl:inline">launch</span>
+          <kbd className="hidden text-[10px] opacity-60 2xl:inline">ctrl k</kbd>
         </button>
         <Segment label="Layout" className="hidden lg:flex">
           {(Object.keys(LAYOUT_META) as LayoutMode[]).map((l) => {
