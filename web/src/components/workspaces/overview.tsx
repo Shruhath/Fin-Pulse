@@ -1,6 +1,6 @@
 "use client";
 
-import { MarketChart } from "@/components/charts/market-chart";
+import { HeatmapLegend, MarketHeatmap } from "@/components/charts/market-heatmap";
 import { FilingsFeed } from "@/components/overview/filings-feed";
 import { Movers } from "@/components/tiles/movers";
 import { SourceMix } from "@/components/tiles/source-mix";
@@ -18,17 +18,20 @@ export function OverviewWorkspace({ data, windowLabel }: { data: Overview; windo
         {
           id: "market",
           cls: "chart",
-          title: `market sentiment · ${windowLabel}`,
+          title: `companies × days · ${windowLabel}`,
           flush: true,
           mobileMinH: 340,
           meta: data.market.length ? (
-            <span className="hidden font-mono sm:inline">
-              mean <b className="text-ink">{fmtScore(mean)}</b> · spread ±{spread.toFixed(2)} · {data.events.length} events
-            </span>
+            <>
+              <HeatmapLegend />
+              <span className="hidden font-mono xl:inline">
+                mean <b className="text-ink">{fmtScore(mean)}</b> · ±{spread.toFixed(2)}
+              </span>
+            </>
           ) : null,
           node: data.market.length ? (
-            <div className="h-full px-1 pt-2">
-              <MarketChart market={data.market} events={data.events} entities={data.entities} />
+            <div className="h-full pt-3 pr-1">
+              <MarketHeatmap market={data.market} events={data.events} entities={data.entities} />
             </div>
           ) : (
             <Empty>No scored mentions in this window yet.</Empty>
