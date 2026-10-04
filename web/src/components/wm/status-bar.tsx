@@ -25,7 +25,7 @@ export function StatusBar({ corpus, preview }: { corpus: CorpusStatus | null; pr
   return (
     <header className="sticky top-0 z-40 flex h-(--bar-h) shrink-0 items-stretch gap-2 bg-bar px-1.5 font-mono text-2xs text-bar-ink select-none">
       <nav aria-label="Workspaces" className="flex min-w-0 items-stretch overflow-x-auto">
-        <span className="hidden items-center px-2 font-semibold tracking-tight text-[#ece7dc] sm:flex">finpulse</span>
+        <span className="hidden items-center px-2 font-semibold tracking-tight text-[#ece7dc] 2xl:flex">finpulse</span>
         {WORKSPACES.map((w) => {
           const active = wm.workspace.n === w.n;
           return (
@@ -89,7 +89,7 @@ export function StatusBar({ corpus, preview }: { corpus: CorpusStatus | null; pr
         <Suspense fallback={null}>
           <WindowSwitch />
         </Suspense>
-        <Item className="hidden lg:flex">
+        <Item className="hidden 2xl:flex">
           {corpus ? (
             <>
               <span className="text-[#ece7dc]">{fmtInt(corpus.documents)}</span> docs
