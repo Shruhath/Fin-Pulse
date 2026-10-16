@@ -256,21 +256,28 @@ Scrapers are written from scratch on standard, publicly documented scraping prac
 | Per-source "recipe": API, URL pattern, or follow links | `ingest/bse.py` (JSON API), `sebi.py`/`rbi.py` (listing → detail), `nclt.py` (form) |
 | Content-addressed raw storage (`sha256`) + dead-letter table for failures | `documents.raw_sha256` unique; `ingest_failures` table |
 
+Source choices follow `docs/DATASETS.md` (terms, access and licence research, Oct 2026).
+Collection itself is restricted for several sources, so the order below is by what is both
+useful and permitted.
+
 | Priority | Source | Method | Target count |
 |---|---|---|---|
-| P0 | **BSE corporate announcements** | JSON endpoint behind `bseindia.com/corporates/ann.html` (needs Referer/UA headers), attachments as PDF | 1,000–1,500 |
-| P0 | **RBI press releases** (penalties on banks/NBFCs) | HTML listing → detail pages | 300–500 |
-| P1 | **SEBI enforcement orders** | `sebi.gov.in/enforcement/orders` HTML index → PDF | 200–400 |
-| P2 | **NCLT orders** | small sample, scanned → OCR path showcase | 30–50 |
-| P2 | News via **RSS only** (ET, Moneycontrol, BS) | store URL, title and extracted text locally; **publish offsets and labels only** | 300 |
-| stretch | NSE | `curl_cffi` impersonation, only if time allows | — |
+| P0 | **SEBI orders** | `sebi.gov.in` server-rendered listings → PDF; mask PAN. Permission email pending, so publish labels and offsets only until it arrives | 200 |
+| P0 | **NCLT orders via IBBI** | `ibbi.gov.in/orders/nclt` listing (no captcha), "Admission - Final Order" PDFs; OCR only pages with under about 20 words | 60 |
+| P0 | **BSE corporate announcements** | the site's own JSON endpoint, minimal volume, raw text kept private while written permission is pending | 300–500 |
+| P1 | **RBI press releases** | RSS plus detail pages, minimal volume; permission requested | 150–300 |
+| P1 | **News metadata via GDELT** | DOC API / GKG, filtered to Indian financial sources; citation required | metadata only |
+| dropped | NSE | terms ban automated collection; request the academic data-sharing route instead | — |
+| dropped | ET / Business Standard / Moneycontrol article text | terms bar building datasets from their content; Moneycontrol RSS is dead. RSS titles may be used as private inputs only | — |
+| not used | MCA filings | paid per company; use **MCA company master data** (data.gov.in, GODL-India) for entity resolution only | — |
 
 Every scraper checks `robots.txt`, rate-limits to ≤1 request/second, retries with
 `tenacity` and backoff, stores the raw file keyed by `sha256`, and is idempotent.
 
 **Entity gazetteer seed (Day 2):** the public BSE "List of Scrips" plus NSE `EQUITY_L.csv`
-give scrip code, symbol, ISIN and legal name. SEntFiN's alias list is added if the data is
-obtainable.
+give scrip code, symbol, ISIN and legal name. Add the TickerTruth NSE security master
+(CC BY 4.0), SEntFiN's entity list (MIT) and MCA company master data from data.gov.in for CIN
+and legal names. NSE `EQUITY_L.csv` is a public list, but check NSE's terms before relying on it.
 
 ### 6.2 Parsing and preprocessing (Sania)
 
@@ -395,12 +402,17 @@ came from this harness.**
 
 | Dataset | Source | Stage | Note |
 |---|---|---|---|
-| FinEntity | HF `yixuantt/FinEntity` | NER + sentiment | primary Stage-1 benchmark |
-| SEntFiN 1.0 | paper / authors / Kaggle mirror | sentiment + aliases | **verify availability Day 1**; if unavailable, say so and use FinEntity + FPB |
-| Financial PhraseBank | HF `takala/financial_phrasebank` | sentiment warm-up | CC BY-NC-SA (fine for research, do not redistribute) |
-| FiQA Task 1 | HF `TheFinAI/fiqa-sentiment-classification` | sentiment (optional) | score thresholds ±0.1, documented |
-| EDT | GitHub `Zhihan1996/TradeTheEvent` | events | taxonomy + eval |
-| ECTSum | GitHub `rajdeep345/ECTSum` | summaries | small eval sample |
+Verified Oct 2026; full licences, caveats and alternatives are in `docs/DATASETS.md`.
+
+| Dataset | Source | Stage | Note |
+|---|---|---|---|
+| FinEntity | HF `yixuantt/FinEntity` | NER + sentiment | ODC-BY; no official test split, so make our own |
+| SEntFiN 1.0 | GitHub `pyRis/SEntFiN` | sentiment + aliases | **available**, MIT; headlines only; cite, do not re-host |
+| Financial PhraseBank | HF `takala/financial_phrasebank` | sentiment warm-up | CC BY-NC-SA: train and cite only, never bundle |
+| FiQA Task 1 | mirror `pauri32/fiqa-2018` (the popular `mteb/fiqa` is the wrong task) | sentiment (optional) | official links dead; score thresholds ±0.1, documented |
+| EDT | GitHub `Zhihan1996/TradeTheEvent` | events | no licence, repo stale since 2021; plus SENTiVENT for argument schema |
+| ECTSum | GitHub `rajdeep345/ECTSum` | summaries | GPL-3.0: evaluation sample only, never bundle |
+| IndiaFinBench, SEBI Circulars, FinDVer | HF / GitHub | claim verification, retrieval | CC BY 4.0 / MIT |
 
 ---
 
@@ -434,8 +446,9 @@ leaves the build green.
 | PyTorch/CUDA does not work on Blackwell `sm_120` | Medium | cu128 wheels; worst case, train on Kaggle and infer on CPU (FinBERT runs fine on 32 cores) |
 | 8 GB VRAM too tight for a 7B/8B model at 8k context | Medium | Reduce `num_ctx` to 4096 (inputs are pruned anyway); worst case Qwen2.5-3B / Llama-3.2-3B, reported honestly |
 | LLM throughput too slow for the full corpus | High | Events and summaries on a 300–500-document subset plus on-demand via `/analyze`; sentiment covers everything |
-| BSE/SEBI block or change their endpoints | Medium | Polite rate limits, cached raw files; RBI + RSS as a guaranteed floor |
-| SEntFiN not obtainable | Medium | FinEntity + FPB only; the gap claim leans on the Indian gold slice |
+| BSE/SEBI block or change their endpoints | Medium | Polite rate limits, cached raw files; IBBI (no bot protection) and SEBI listings as the floor |
+| A source refuses or ignores the permission request | High | Publish labels, offsets and hashes only for that source; collect nothing from it beyond the sample |
+| Source terms ban collection (NSE, ET, Business Standard, Moneycontrol) | Certain | Dropped from the plan; GDELT metadata and the academic data-sharing route instead |
 | Annotation time runs short | High | Smaller gold slice (≥60 docs) with κ on 20; report it honestly |
 | Scope creep in events or summaries | High | Rule baseline + Qwen only, and document-level summaries before entity-window summaries |
 
