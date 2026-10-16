@@ -160,7 +160,7 @@ Caveat: every request to mca.gov.in and data.gov.in returned 403, so no page was
 | **SEBI** | Allows all but `/js`, `/css` | Free reuse after permission email, with attribution | Server-rendered listings, AJAX POST to `/sebiweb/ajax/home/getnewslistinfo.jsp`, PDFs under `/sebi_data/attachdocs/`; `sebirss.xml` has only the latest 30 | Yes **after permission**, else URLs and labels |
 | **RBI** | UNVERIFIED (HTTP 418) | No reuse licence; "© All Rights Reserved"; bars caching and framing | `pressreleases_rss.xml` (10 items, full HTML); archive pages are ASP.NET WebForms | **Risky.** Ask RBI |
 | **IBBI** | None (404) | Free reproduction with attribution | `/uploads/order/*.pdf` | **Yes**, with attribution and pseudonymised persons |
-| **ET** | Articles allowed | Terms (21 Sep 2026) bar scraping or indexing to build datasets or for AI/ML without written licence | RSS (50 items, snippets) | **No.** URLs and labels only |
+| **ET** | Articles allowed | Terms (21 Sep 2026) bar scraping or indexing to build datasets or for machine-learning use without written licence | RSS (50 items, snippets) | **No.** URLs and labels only |
 | **Business Standard** | UNVERIFIED (403) | Bans scraping, ML and RAG; says robots.txt is not consent | RSS (35 items) | **No** |
 | **Moneycontrol** | UNVERIFIED (403) | Bans machine-readable / database / LLM use | RSS dead (410; stale feeds) | **No** |
 | **Mint** | Allows `/` with listed disallows | UNVERIFIED | UNVERIFIED | Assume **No** |
