@@ -150,7 +150,10 @@ class DividendIncreaseArgs(DividendArgs):
 
 class SEBIPenaltyArgs(_Args):
     type: Literal["SEBI Penalty"] = "SEBI Penalty"
-    action: Literal["penalty", "restraint", "settlement"] | None = None
+    action: (
+        Literal["penalty", "restraint", "settlement", "registration cancelled", "disgorgement", "warning"]
+        | None
+    ) = None
     amount_inr: Decimal | None = None
     provisions: list[str] = Field(default_factory=list)
     duration: str | None = None

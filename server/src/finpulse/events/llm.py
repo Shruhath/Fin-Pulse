@@ -24,7 +24,7 @@ from .taxonomy import DEFINITIONS, EventType, argument_choices, argument_fields,
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = "events-v2"
+PROMPT_VERSION = "events-v3"
 MAX_ATTEMPTS = 3  # the first try and two retries
 
 EVENT_RESPONSE_SCHEMA: dict[str, Any] = {
@@ -126,6 +126,9 @@ ENUM_HINTS: dict[str, list[tuple[str, str]]] = {
         ("debar", "restraint"),
         ("prohibit", "restraint"),
         ("settle", "settlement"),
+        ("cancel", "registration cancelled"),
+        ("disgorg", "disgorgement"),
+        ("warn", "warning"),
     ],
     "applicant_type": [
         ("operational", "operational creditor"),
@@ -178,6 +181,8 @@ def normalise_arguments(
         elif key.endswith("_date"):
             dates = find_dates(str(value))
             typed[key] = dates[0].value if dates else str(value)
+        elif key.endswith("_percent"):
+            typed[key] = re.sub(r"\s*(%|per\s*cent|percent)\s*$", "", str(value).strip(), flags=re.IGNORECASE)
         elif key == "provisions":
             typed[key] = [p.strip() for p in re.split(r"[;|]", str(value)) if p.strip()]
         elif key == "moratorium":

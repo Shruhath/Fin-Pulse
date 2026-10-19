@@ -87,6 +87,13 @@ def _link(a: argparse.Namespace) -> int:
 
 
 def _events(a: argparse.Namespace) -> int:
+    if a.revalidate:
+        from finpulse.pipeline.llm_events import revalidate_llm_events
+
+        with session_scope() as s:
+            checked, changed = revalidate_llm_events(s)
+        print(f"{checked} LLM events checked against the current schema, {changed} changed")
+        return 0
     from finpulse.pipeline.events import extract_pending
 
     with session_scope() as s:
@@ -390,6 +397,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ev = add("events", _events, "extract events with the rule baseline")
     ev.add_argument("--limit", type=int)
+    ev.add_argument("--revalidate", action="store_true", help="re-check stored LLM events against the schema")
 
     se = add("sentiment", _sentiment, "train the TF-IDF baseline, or score linked mentions with it")
     se.add_argument("action", choices=["train", "score"])

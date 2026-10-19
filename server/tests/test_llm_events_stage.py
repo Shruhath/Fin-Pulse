@@ -33,9 +33,14 @@ class ScriptedLlm:
 
 def _doc(db, sha="a" * 64, title="Order in the matter of Raga Securities and Finance Private Limited"):
     doc = Document(
-        source_kind="SEBI", title=title, raw_sha256=sha, clean_text=TEXT, status="parsed",
-        doc_type="SEBI adjudication order", published_at=date(2024, 5, 2),
-    )  # fmt: skip
+        source_kind="SEBI",
+        title=title,
+        raw_sha256=sha,
+        clean_text=TEXT,
+        status="parsed",
+        doc_type="SEBI adjudication order",
+        published_at=date(2024, 5, 2),
+    )
     db.add(doc)
     db.flush()
     for i, s in enumerate(split_sentences(TEXT)):
@@ -81,7 +86,7 @@ def test_events_are_stored_against_the_trigger_sentence_and_the_resolved_entity(
     assert ev.confidence is None and ev.schema_valid
     assert doc.clean_text[ev.trigger_start : ev.trigger_end].startswith("I hereby impose")
     run = db.scalar(select(Run).where(Run.stage == "events-llm"))
-    assert run.model == "qwen2.5:7b-instruct" and run.prompt_version == "events-v2" and run.status == "done"
+    assert run.model == "qwen2.5:7b-instruct" and run.prompt_version == "events-v3" and run.status == "done"
     assert "[S" in llm.prompts[0] and "Raga Securities" in llm.prompts[0]
 
 
@@ -107,9 +112,13 @@ def test_rerun_skips_documents_that_have_llm_events_unless_redo(db):
 def test_a_document_with_unusable_answers_is_counted_failed_and_the_batch_goes_on(db):
     _doc(db, sha="d" * 64)
     other = Document(
-        source_kind="SEBI", title="Another", raw_sha256="e" * 64, clean_text=TEXT, status="parsed",
+        source_kind="SEBI",
+        title="Another",
+        raw_sha256="e" * 64,
+        clean_text=TEXT,
+        status="parsed",
         doc_type="SEBI adjudication order",
-    )  # fmt: skip
+    )
     db.add(other)
     db.flush()
     for i, s in enumerate(split_sentences(TEXT)):
@@ -132,3 +141,44 @@ def test_an_unavailable_model_stops_the_stage_instead_of_failing_every_document(
     with pytest.raises(LlmUnavailable):
         llm_extract_pending(db, ScriptedLlm(LlmUnavailable("down")), "qwen")
     assert db.scalar(select(Run).where(Run.stage == "events-llm", Run.status == "failed")) is not None
+
+
+def test_revalidation_changes_only_the_flag_never_the_stored_words(db):
+    from finpulse.pipeline.llm_events import revalidate_llm_events
+
+    doc, _ = _doc(db, sha="9" * 64)
+    db.add(
+        Event(
+            doc_id=doc.id,
+            type="SEBI Penalty",
+            extractor="llm",
+            schema_valid=False,
+            arguments={"action": "Cancel the certificate of registration"},
+        )
+    )
+    db.add(
+        Event(
+            doc_id=doc.id,
+            type="SEBI Penalty",
+            extractor="llm",
+            schema_valid=True,
+            arguments={"action": "fined"},
+        )
+    )
+    db.add(
+        Event(
+            doc_id=doc.id,
+            type="SEBI Penalty",
+            extractor="rules",
+            schema_valid=True,
+            arguments={"action": "x"},
+        )
+    )
+    db.flush()
+    assert revalidate_llm_events(db) == (2, 2)
+    flags = {
+        e.arguments["action"]: e.schema_valid
+        for e in db.scalars(select(Event).where(Event.extractor == "llm"))
+    }
+    assert flags == {"Cancel the certificate of registration": True, "fined": False}
+    assert db.scalar(select(Event).where(Event.extractor == "rules")).schema_valid is True  # rules untouched

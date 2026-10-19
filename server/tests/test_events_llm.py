@@ -56,7 +56,7 @@ def test_prompt_lists_every_type_the_entities_and_numbered_sentences():
         entities=["Raga Securities Ltd"], shown=SHOWN,
     )  # fmt: skip
     assert all(t.value in prompt for t in EventType)
-    assert "action (exactly one of: penalty, restraint, settlement)" in prompt
+    assert "action (exactly one of: penalty, restraint, settlement, registration cancelled" in prompt
     assert "[S3] I hereby impose" in prompt and "[S9] The matter" in prompt
     assert "Raga Securities Ltd" in prompt and "SEBI (SEBI adjudication order)" in prompt
     assert "never infer" in SYSTEM and EVENT_RESPONSE_SCHEMA["required"] == ["events"]
@@ -180,3 +180,12 @@ def test_a_creditor_name_in_applicant_type_is_not_guessed():
         ]
         == "financial creditor"
     )
+
+
+def test_percent_signs_and_cancellations_are_understood():
+    _, typed, _ = normalise_arguments(EventType.ACQUISITION, {"stake_percent": "45.90%"})
+    assert str(typed["stake_percent"]) == "45.90" and validate_arguments(EventType.ACQUISITION, typed)
+    _, cancel, _ = normalise_arguments(
+        EventType.SEBI_PENALTY, {"action": "Cancel the certificate of registration as a stock broker"}
+    )
+    assert cancel["action"] == "registration cancelled" and validate_arguments(EventType.SEBI_PENALTY, cancel)

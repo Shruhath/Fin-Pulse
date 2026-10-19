@@ -186,3 +186,25 @@ def extract_llm_one(session: Session, llm: Llm, model: str, doc: Document) -> Do
         outcome = extract_for_document(session, llm, model, doc, resolver, run.id)
         session.commit()
     return outcome
+
+
+def revalidate_llm_events(session: Session) -> tuple[int, int]:
+    """Check stored LLM events against the current taxonomy and normaliser again, without calling the model.
+
+    The stored arguments are the model's own words, so a better normaliser or a wider schema can only
+    change `schema_valid`, never the extraction. Returns (events checked, events whose flag changed).
+    """
+    from finpulse.events.llm import normalise_arguments
+    from finpulse.events.taxonomy import EventType, validate_arguments
+
+    checked = changed = 0
+    for ev in session.scalars(select(Event).where(Event.extractor == EXTRACTOR)):
+        etype = EventType(ev.type)
+        _, typed, _ = normalise_arguments(etype, dict(ev.arguments))
+        valid = validate_arguments(etype, typed)
+        checked += 1
+        if valid != ev.schema_valid:
+            ev.schema_valid = valid
+            changed += 1
+    session.flush()
+    return checked, changed
