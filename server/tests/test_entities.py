@@ -124,6 +124,13 @@ def test_fuzzy_does_not_merge_a_name_with_an_extended_one():
         ("Consent order for Shri Ashok Bharadia in Mazda Fabrics and Processors Ltd",
          [("subject", "person", "Ashok Bharadia"),
           ("matter", "company", "Mazda Fabrics and Processors Ltd")]),
+        ("Order in the matter of Orthia Properties Private Limited, Zelkova Builders Private Limited, and "
+         "Shri Sameer Gehlaut",
+         [("subject", "company", "Orthia Properties Private Limited"),
+          ("subject", "company", "Zelkova Builders Private Limited"),
+          ("subject", "person", "Sameer Gehlaut")]),
+        ("Adjudication order in respect of Ram Chandra Singh, Director, M/s Delton Exim Private Limited",
+         [("subject", "person", "Ram Chandra Singh"), ("subject", "company", "Delton Exim Private Limited")]),
         ("Order against the past director of Sunplant Forgings Limited viz. Shri Ameet Singh",
          [("subject", "company", "Sunplant Forgings Limited")]),
         ("Adjudication Order in respect of Mrs. Simran Sunil Raheja in the matter of "

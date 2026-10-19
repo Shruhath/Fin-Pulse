@@ -43,6 +43,12 @@ _NOT_A_PARTY = (
     "dealing", "trading", "illiquid", "alleged", "non-", "failure", "violation", "front",
     "the scrip", "scrip", "self",
 )  # fmt: skip
+_MULTI = re.compile(r",\s*(?:and\s+)?|\s+and\s+(?=(?:shri|smt|sri|mr|mrs|ms|m/s|late)\b)", _I)
+_ROLE_WORD = re.compile(
+    r"^(?:the\s+)?(?:director|directors|partner|partners|proprietor|promoter|promoters|ceo|cfo|chairman|"
+    r"managing\s+director|company\s+secretary|compliance\s+officer|and\s+others?|others?)\b",
+    _I,
+)
 _PERSON_MARK = re.compile(r"^(?:shri|sri|smt\.?|mr\.?|mrs\.?|ms\.?|late|dr\.?)\s", _I)
 _COMPANY_WORD = re.compile(
     r"\b(?:limited|ltd|pvt|private|llp|bank|industries|company|co|corporation|corp|finance|securities|"
@@ -51,6 +57,10 @@ _COMPANY_WORD = re.compile(
     r"traders|academy|research|biotech|jewellers|properties|pictures|broking|beverages|prints)\b",
     _I,
 )
+
+
+_MAX_PARTIES = 6
+_MAX_NAME = 120
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,9 +102,13 @@ def title_subjects(title: str) -> list[TitleSubject]:
         pieces = [m.group(1), m.group(2)]
     out: list[TitleSubject] = []
     for i, piece in enumerate(pieces[:2]):
-        party = _party(piece, "subject" if i == 0 else "matter")
-        if party:
-            out.append(party)
+        role = "subject" if i == 0 else "matter"
+        for chunk in _MULTI.split(piece)[:_MAX_PARTIES]:
+            if not chunk or chunk.startswith("(") or _ROLE_WORD.match(chunk.strip()):
+                continue
+            party = _party(chunk, role)
+            if party and len(party.name) <= _MAX_NAME:
+                out.append(party)
     return out
 
 

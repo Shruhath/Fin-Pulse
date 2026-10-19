@@ -52,7 +52,8 @@ class Linker:
         self.created = 0
 
     def _new_entity(self, subject: TitleSubject) -> Entity:
-        base, slug, n = slugify(subject.name), slugify(subject.name), 2
+        base = slugify(subject.name)[:90]
+        slug, n = base, 2
         while slug in self.slugs:
             slug, n = f"{base}-{n}", n + 1
         self.slugs.add(slug)
