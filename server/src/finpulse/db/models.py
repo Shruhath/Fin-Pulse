@@ -350,6 +350,7 @@ class EvalResult(Base):
     split: Mapped[str] = mapped_column(String(16), nullable=False)
     indian: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
     metrics: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    detail: Mapped[dict[str, Any] | None] = mapped_column(JSONB)  # confusion matrix, reliability bins
     run_id: Mapped[int | None] = mapped_column(ForeignKey("runs.id", ondelete="SET NULL"))
     git_sha: Mapped[str | None] = mapped_column(String(40))
     data_hash: Mapped[str | None] = mapped_column(String(64))

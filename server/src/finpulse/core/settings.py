@@ -42,6 +42,15 @@ class Settings(BaseSettings):
     def raw_dir(self) -> Path:
         return self.data_dir / "raw"
 
+    @property
+    def models_dir(self) -> Path:
+        return self.data_dir / "models"
+
+    @property
+    def results_dir(self) -> Path:
+        """Committed metric files, one per evaluation run."""
+        return REPO_DIR / "ml" / "results"
+
 
 @lru_cache
 def get_settings() -> Settings:
