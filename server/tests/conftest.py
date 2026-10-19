@@ -59,3 +59,18 @@ def db(migrated_db: str) -> Iterator[Session]:
         session.close()
         outer.rollback()
         connection.close()
+
+
+@pytest.fixture
+def client(db: Session) -> Iterator[object]:
+    """The real FastAPI app, reading and writing through the test's rolled-back session."""
+    from fastapi.testclient import TestClient
+
+    from finpulse.api.app import app
+    from finpulse.api.deps import get_db
+
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
