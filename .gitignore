@@ -34,3 +34,6 @@ next-env.d.ts
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# downloaded datasets
+data-set/
