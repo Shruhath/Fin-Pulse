@@ -198,7 +198,9 @@ _INSTRUMENT = (
     r"(?:the\s+)?(?:(?:[A-Z][A-Za-z&()\-]*|and|of|for)\s+){0,8}?(?:Act|Regulations|Regulation|Rules|Code|Order|Circular)"
     r"(?:\s*,?\s*(?:19|20)\d{2})?"
 )
-_PROVISION = r"(?i:Sections?|Sec\.|Regulations?|Reg\.|Rules?|Clauses?)\s+\d+[A-Z]{0,2}(?:\s*\(\s*\w+\s*\))*"
+_PROVISION = (
+    r"(?i:Sections?|Sec\.|u/s\.?|Regulations?|Reg\.|Rules?|Clauses?)\s*\d+[A-Z]{0,2}(?:\s*\(\s*\w+\s*\))*"
+)
 _STATUTE = re.compile(
     rf"(?P<prov>{_PROVISION}(?:\s*(?:,|and|read with|r/w)\s*\d+[A-Z]{{0,2}}(?:\s*\(\s*\w+\s*\))*)*)"
     rf"\s+(?:of|under)\s+(?P<inst>{_INSTRUMENT})"
