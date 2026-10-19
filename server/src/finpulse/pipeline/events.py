@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from finpulse.core.offsets import Span
@@ -38,6 +38,42 @@ def _subject_entity(session: Session, doc_id: int) -> int | None:
     )
 
 
+def extract_for_document(session: Session, doc: Document, run_id: int | None = None) -> int:
+    """Replace the rule events of one document. Returns how many were stored."""
+    spans = [
+        Span(r.char_start, r.char_end)
+        for r in session.scalars(select(Sentence).where(Sentence.doc_id == doc.id).order_by(Sentence.idx))
+    ]
+    drafts = extract_events(
+        source_kind=doc.source_kind,
+        doc_type=doc.doc_type,
+        text=doc.clean_text,
+        sentence_spans=spans,
+        published_at=doc.published_at,
+    )
+    session.execute(delete(Event).where(Event.doc_id == doc.id, Event.extractor == EXTRACTOR))
+    entity_id = _subject_entity(session, doc.id) if drafts else None
+    for d in drafts:
+        session.add(
+            Event(
+                doc_id=doc.id,
+                entity_id=entity_id,
+                type=d.type.value,
+                trigger_start=d.trigger.start,
+                trigger_end=d.trigger.end,
+                arguments=d.arguments,
+                event_date=d.event_date,
+                amount_inr=d.amount_inr,
+                confidence=None,  # a rule is not a probability
+                schema_valid=d.schema_valid,
+                extractor=EXTRACTOR,
+                run_id=run_id,
+            )
+        )
+    session.flush()
+    return len(drafts)
+
+
 def extract_pending(session: Session, *, limit: int | None = None) -> EventStats:
     """Redo the rule events of every parsed SEBI or NCLT document."""
     stmt = (
@@ -53,41 +89,19 @@ def extract_pending(session: Session, *, limit: int | None = None) -> EventStats
         return stats
     with recorded_run(session, "events", model="rules-v1", params={"documents": len(docs)}) as run:
         for doc in docs:
-            spans = [
-                Span(s.char_start, s.char_end)
-                for s in session.scalars(
-                    select(Sentence).where(Sentence.doc_id == doc.id).order_by(Sentence.idx)
-                )
-            ]
-            drafts = extract_events(
-                source_kind=doc.source_kind,
-                doc_type=doc.doc_type,
-                text=doc.clean_text,
-                sentence_spans=spans,
-                published_at=doc.published_at,
-            )
-            session.execute(delete(Event).where(Event.doc_id == doc.id, Event.extractor == EXTRACTOR))
-            entity_id = _subject_entity(session, doc.id) if drafts else None
-            for d in drafts:
-                session.add(
-                    Event(
-                        doc_id=doc.id,
-                        entity_id=entity_id,
-                        type=d.type.value,
-                        trigger_start=d.trigger.start,
-                        trigger_end=d.trigger.end,
-                        arguments=d.arguments,
-                        event_date=d.event_date,
-                        amount_inr=d.amount_inr,
-                        confidence=None,  # a rule is not a probability
-                        schema_valid=d.schema_valid,
-                        extractor=EXTRACTOR,
-                        run_id=run.id,
-                    )
-                )
-                stats.events += 1
-                stats.without_entity += entity_id is None
-                stats.invalid += not d.schema_valid
+            stored = extract_for_document(session, doc, run.id)
             stats.documents += 1
+            stats.events += stored
+            if stored:
+                stats.without_entity += session.scalar(
+                    select(func.count())
+                    .select_from(Event)
+                    .where(Event.doc_id == doc.id, Event.entity_id.is_(None))
+                )
+                stats.invalid += session.scalar(
+                    select(func.count())
+                    .select_from(Event)
+                    .where(Event.doc_id == doc.id, Event.schema_valid.is_(False))
+                )
             session.commit()
     return stats

@@ -116,6 +116,18 @@ class Linker:
         return sorted(mentions, key=lambda m: m.char_start)
 
 
+def link_document(session: Session, linker: Linker, doc: Document) -> list[Mention]:
+    """Replace one document's mentions with freshly linked ones."""
+    sentences = list(
+        session.scalars(select(Sentence).where(Sentence.doc_id == doc.id).order_by(Sentence.idx))
+    )
+    session.execute(delete(Mention).where(Mention.doc_id == doc.id))
+    mentions = linker.link(doc, sentences)
+    session.add_all(mentions)
+    session.flush()
+    return mentions
+
+
 def link_pending(session: Session, *, limit: int | None = None, relink: bool = False) -> LinkStats:
     """Link every parsed document that has no mentions yet (or all of them with `relink`)."""
     stmt = select(Document).where(Document.status.in_(("parsed", "analysed"))).order_by(Document.id)
@@ -132,12 +144,7 @@ def link_pending(session: Session, *, limit: int | None = None, relink: bool = F
     ):
         linker = Linker(session)
         for doc in docs:
-            sentences = list(
-                session.scalars(select(Sentence).where(Sentence.doc_id == doc.id).order_by(Sentence.idx))
-            )
-            session.execute(delete(Mention).where(Mention.doc_id == doc.id))
-            mentions = linker.link(doc, sentences)
-            session.add_all(mentions)
+            mentions = link_document(session, linker, doc)
             stats.documents += 1
             stats.mentions += len(mentions)
             stats.unresolved += sum(m.entity_id is None for m in mentions)

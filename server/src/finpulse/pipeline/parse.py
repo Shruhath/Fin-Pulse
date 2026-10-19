@@ -20,7 +20,7 @@ from finpulse.core.settings import get_settings
 from finpulse.db.models import Document, Sentence
 from finpulse.parse import parse_file
 from finpulse.parse.ocr import tesseract_version
-from finpulse.preprocess.clean import clean_pages
+from finpulse.preprocess.clean import clean_pages, clean_text
 from finpulse.preprocess.sentences import split_sentences
 
 from .runs import recorded_run
@@ -62,6 +62,12 @@ def parse_raw(path: Path, *, ocr: bool = True) -> ParseResult:
         ocr_pages=sum(p.ocr for p in parsed.pages),
         sentences=split_sentences(text),
     )
+
+
+def parse_text(text: str) -> ParseResult:
+    """Pasted text has no pages or layout: clean it and split it."""
+    cleaned = clean_text(text)
+    return ParseResult(cleaned, 1, 0, split_sentences(cleaned))
 
 
 def apply_parse(session: Session, doc: Document, result: ParseResult) -> None:

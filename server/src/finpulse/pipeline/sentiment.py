@@ -35,7 +35,9 @@ def latest_model_path(directory: Path | None = None) -> Path | None:
     return files[-1] if files else None
 
 
-def score_pending(session: Session, model: SentimentBaseline, *, limit: int | None = None) -> SentimentStats:
+def score_pending(
+    session: Session, model: SentimentBaseline, *, limit: int | None = None, doc_id: int | None = None
+) -> SentimentStats:
     """Score linked mentions that have no prediction from this model version yet."""
     assert model.version is not None
     scored = select(MentionSentiment.mention_id).where(MentionSentiment.model_version == model.version)
@@ -45,6 +47,8 @@ def score_pending(session: Session, model: SentimentBaseline, *, limit: int | No
         .where(Mention.entity_id.is_not(None), Mention.id.not_in(scored))
         .order_by(Mention.id)
     )
+    if doc_id is not None:
+        stmt = stmt.where(Mention.doc_id == doc_id)
     if limit:
         stmt = stmt.limit(limit)
     rows = session.execute(stmt).all()
