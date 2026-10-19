@@ -84,7 +84,7 @@ def _toy_model(tmp_path):
         for i in range(30)
     ]
     model = SentimentBaseline().fit([window_text(e.text, e.start, e.end) for e in ex], [e.label for e in ex])
-    return model.save(tmp_path)
+    return model
 
 
 def _queued_job(client, db, text, source):
@@ -93,7 +93,7 @@ def _queued_job(client, db, text, source):
 
 
 def test_full_analysis_without_a_sentiment_model_says_what_it_skipped(client, db, monkeypatch):
-    monkeypatch.setattr(analyze_mod, "latest_model_path", lambda: None)
+    monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: None)
     job = _queued_job(client, db, ORDER, "SEBI")
     job.status, job.attempts = "running", 1
     run_analysis(db, job)
@@ -114,8 +114,8 @@ def test_full_analysis_without_a_sentiment_model_says_what_it_skipped(client, db
 
 
 def test_full_analysis_scores_mentions_when_a_model_exists(client, db, monkeypatch, tmp_path):
-    path = _toy_model(tmp_path)
-    monkeypatch.setattr(analyze_mod, "latest_model_path", lambda: path)
+    model = _toy_model(tmp_path)
+    monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: model)
     job = _queued_job(client, db, ORDER, "SEBI")
     job.status, job.attempts = "running", 1
     run_analysis(db, job)
@@ -126,16 +126,16 @@ def test_full_analysis_scores_mentions_when_a_model_exists(client, db, monkeypat
 
 
 def test_news_documents_skip_the_rule_events_with_a_reason(client, db, monkeypatch):
-    monkeypatch.setattr(analyze_mod, "latest_model_path", lambda: None)
+    monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: None)
     job = _queued_job(client, db, "Yes Bank shares rose on Monday after strong results.", "NEWS")
     job.status, job.attempts = "running", 1
     run_analysis(db, job)
     stages = {s["key"]: s for s in job.stages}
-    assert stages["events"]["status"] == "skipped" and "SEBI and NCLT" in stages["events"]["note"]
+    assert stages["events"]["status"] == "skipped" and "SEBI, NCLT and RBI" in stages["events"]["note"]
 
 
 def test_an_already_analysed_document_is_not_processed_twice(client, db, monkeypatch):
-    monkeypatch.setattr(analyze_mod, "latest_model_path", lambda: None)
+    monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: None)
     job = _queued_job(client, db, ORDER, "SEBI")
     job.status, job.attempts = "running", 1
     run_analysis(db, job)

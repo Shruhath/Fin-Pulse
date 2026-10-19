@@ -22,13 +22,12 @@ from finpulse.db.models import Document, Job
 from finpulse.ingest.fetch import FetchRefused, fetch
 from finpulse.parse import parse_html
 from finpulse.preprocess.clean import clean_pages
-from finpulse.sentiment.baseline import SentimentBaseline
 
 from .events import extract_for_document
 from .jobs import finish, set_stage
 from .link import Linker, link_document
 from .parse import ParseResult, apply_parse, parse_raw, parse_text, resolve_raw
-from .sentiment import latest_model_path, score_pending
+from .sentiment import load_scoring_model, score_pending
 
 log = logging.getLogger(__name__)
 MAX_TEXT_CHARS = 400_000
@@ -163,13 +162,12 @@ def run_analysis(session: Session, job: Job) -> None:
 
     _timed(session, job, "entities", entities)
 
-    model_path = latest_model_path()
-    if model_path is None:
+    model = load_scoring_model(device="cpu")  # live mode keeps the GPU free for the LLM stages
+    if model is None:
         _skip(session, job, "sentiment", "no sentiment model has been trained yet")
     else:
 
         def sentiment() -> str | None:
-            model = SentimentBaseline.load(model_path)
             stats = score_pending(session, model, doc_id=doc.id)
             session.execute(text("refresh materialized view entity_daily"))
             session.commit()
@@ -177,7 +175,7 @@ def run_analysis(session: Session, job: Job) -> None:
 
         _timed(session, job, "sentiment", sentiment)
 
-    if doc.source_kind in {"SEBI", "NCLT"}:
+    if doc.source_kind in {"SEBI", "NCLT", "RBI"}:
 
         def events() -> str | None:
             n = extract_for_document(session, doc)
@@ -190,7 +188,7 @@ def run_analysis(session: Session, job: Job) -> None:
             session,
             job,
             "events",
-            "the rule baseline covers SEBI and NCLT orders; the LLM stage is not enabled",
+            "the rule baseline covers SEBI, NCLT and RBI documents; the LLM stage is not enabled",
         )
 
     _skip(session, job, "summary", "the summary stage needs the local LLM, which is not enabled yet")

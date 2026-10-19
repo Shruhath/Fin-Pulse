@@ -62,6 +62,10 @@ class SentimentBaseline:
         order = [list(self.pipeline.classes_).index(lab) for lab in LABELS]
         return raw[:, order]
 
+    def predict_spans(self, items: Sequence[tuple[str, int, int]]) -> np.ndarray:
+        """Probabilities for (text, mention start, mention end) items, the interface every model shares."""
+        return self.predict_proba([window_text(t, a, b) for t, a, b in items])
+
     def predict(self, windows: Sequence[str]) -> list[str]:
         return [LABELS[i] for i in self.predict_proba(windows).argmax(axis=1)]
 
