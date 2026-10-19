@@ -91,6 +91,36 @@ def _events(a: argparse.Namespace) -> int:
     return 0
 
 
+def _sentiment(a: argparse.Namespace) -> int:
+    from finpulse.sentiment.baseline import SentimentBaseline
+
+    if a.action == "train":
+        from finpulse.eval.sentiment import train_and_evaluate
+
+        with session_scope() as s:
+            run = train_and_evaluate(s)
+        print(f"trained {run.version}  ->  {run.model_path}\nresults -> {run.result_path}")
+        for row in run.rows:
+            m = row["metrics"]
+            print(
+                f"  {row['dataset']:<16} n={int(m['n'])}  macro-F1 {m['macroF1']:.3f}  "
+                f"weighted-F1 {m['weightedF1']:.3f}  ECE {m['ece']:.3f}"
+            )
+        return 0
+
+    from finpulse.pipeline.sentiment import latest_model_path, score_pending
+
+    path = latest_model_path()
+    if path is None:
+        print("no trained model found: run `finpulse sentiment train` first", file=sys.stderr)
+        return 1
+    with session_scope() as s:
+        refresh = score_pending(s, SentimentBaseline.load(path), limit=a.limit)
+        s.execute(text("refresh materialized view entity_daily"))
+    print(f"scored {refresh.mentions} mentions with {refresh.version}")
+    return 0
+
+
 def _dedup(a: argparse.Namespace) -> int:
     from finpulse.pipeline.dedup import dedup_documents
 
@@ -141,6 +171,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     ev = add("events", _events, "extract events with the rule baseline")
     ev.add_argument("--limit", type=int)
+
+    se = add("sentiment", _sentiment, "train the TF-IDF baseline, or score linked mentions with it")
+    se.add_argument("action", choices=["train", "score"])
+    se.add_argument("--limit", type=int)
 
     dd = add("dedup", _dedup, "cluster near-duplicate documents")
     dd.add_argument("--threshold", type=float, default=0.85)
