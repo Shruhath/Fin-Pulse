@@ -98,7 +98,7 @@ class Linker:
                 )
             )
 
-        for subject in title_subjects(doc.title):
+        for subject in title_subjects(doc.title, doc.source_kind):
             res = self.resolver.resolve(subject.name)
             if res.entity_id is None and res.method != "ambiguous":
                 entity_id, method, score = self._new_entity(subject).id, "created", 100.0

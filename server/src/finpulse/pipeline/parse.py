@@ -113,6 +113,9 @@ def parse_pending(
         by_future = {}
         with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
             for doc in docs:
+                if doc.meta.get("text") and not doc.raw_path:  # RSS items and pasted text arrive as text
+                    by_future[pool.submit(parse_text, doc.meta["text"])] = doc
+                    continue
                 try:
                     path = resolve_raw(doc.raw_path or "")
                 except FileNotFoundError:

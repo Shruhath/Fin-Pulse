@@ -1,4 +1,4 @@
-"""Event stage (rule baseline): operative sentences of SEBI and NCLT orders -> `events` rows."""
+"""Event stage (rule baseline): operative sentences of SEBI, NCLT and RBI documents -> `events` rows."""
 
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ def extract_pending(session: Session, *, limit: int | None = None) -> EventStats
     """Redo the rule events of every parsed SEBI or NCLT document."""
     stmt = (
         select(Document)
-        .where(Document.status.in_(("parsed", "analysed")), Document.source_kind.in_(("SEBI", "NCLT")))
+        .where(Document.status.in_(("parsed", "analysed")), Document.source_kind.in_(("SEBI", "NCLT", "RBI")))
         .order_by(Document.id)
     )
     if limit:

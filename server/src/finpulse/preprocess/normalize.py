@@ -68,6 +68,8 @@ def find_amounts(text: str) -> list[Amount]:
     out: list[Amount] = []
     for m in _AMOUNT.finditer(text):
         inr = Decimal(m["num"].replace(",", "")) * _unit_multiplier(m["unit"])
+        if inr == inr.to_integral_value():
+            inr = inr.quantize(Decimal(1))  # 500000, not 5.00E+5
         out.append(Amount(Span(m.start(), m.end()), m.group(0), inr))
     return out
 
@@ -195,7 +197,7 @@ def mask_pan(text: str) -> str:
 # --------------------------------------------------------------------------- statutes
 
 _INSTRUMENT = (
-    r"(?:the\s+)?(?:(?:[A-Z][A-Za-z&()\-]*|and|of|for)\s+){0,8}?(?:Act|Regulations|Regulation|Rules|Code|Order|Circular)"
+    r"(?:the\s+)?(?:(?:[A-Z][A-Za-z&()\-]*|and|of|for)\s+){0,8}?(?:Act|Regulations?(?:\s+Act)?|Rules|Code|Order|Circular)"
     r"(?:\s*,?\s*(?:19|20)\d{2})?"
 )
 _PROVISION = (
