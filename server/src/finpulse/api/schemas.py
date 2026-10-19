@@ -144,6 +144,9 @@ class Claim(Api):
 class Summary(Api):
     id: str
     scope: Literal["document", "entity"]
+    subject: str | None = None
+    document_id: str | None = None
+    entity_id: str | None = None
     model: str
     generated_at: datetime
     claims: list[Claim]
@@ -187,6 +190,7 @@ class MetricRow(Api):
     dataset: str
     indian: bool
     metrics: dict[str, float]
+    p_value_vs_baseline: float | None = None  # McNemar's exact test against the TF-IDF baseline
     git_sha: str | None = None
     created_at: datetime | None = None
 
@@ -268,6 +272,20 @@ class SearchFiling(Api):
 class SearchIndex(Api):
     companies: list[SearchCompany]
     filings: list[SearchFiling]
+
+
+class SearchHit(Api):
+    document_id: str
+    title: str
+    source: SourceKind
+    published_at: date | None
+    snippet: str  # the best matching sentence with the query terms in <mark> tags
+
+
+class SearchResults(Api):
+    query: str
+    companies: list[SearchCompany]
+    filings: list[SearchHit]
 
 
 class Health(Api):

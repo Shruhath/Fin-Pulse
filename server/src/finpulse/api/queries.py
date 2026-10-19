@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from math import sqrt
 
 from sqlalchemy import Select, and_, desc, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from finpulse.db.models import (
     Claim,
@@ -209,8 +209,10 @@ def event_markers(
     entity_slug: str | None = None,
     doc_id: int | None = None,
     event_type: str | None = None,
+    extractor: str = "best",
     limit: int = 500,
 ) -> list[tuple[Event, Document, Entity | None]]:
+    """Events newest first. `best` shows a document's LLM events when it has any, else its rule events."""
     stmt = (
         select(Event, Document, Entity)
         .join(Document, Document.id == Event.doc_id)
@@ -226,6 +228,12 @@ def event_markers(
         stmt = stmt.where(Event.doc_id == doc_id)
     if event_type:
         stmt = stmt.where(Event.type == event_type)
+    if extractor in {"llm", "rules"}:
+        stmt = stmt.where(Event.extractor == extractor)
+    else:
+        other = aliased(Event)
+        llm_events = select(other.id).where(other.doc_id == Document.id, other.extractor == "llm").exists()
+        stmt = stmt.where((Event.extractor == "llm") | ~llm_events)
     rows = db.execute(stmt.order_by(desc(Event.event_date).nulls_last(), desc(Event.id)).limit(limit)).all()
     return [(e, d, ent) for e, d, ent in rows]
 
@@ -245,11 +253,13 @@ def to_marker(ev: Event, doc: Document, ent: Entity | None) -> s.EventMarker:
     )
 
 
-def to_record(ev: Event, doc: Document, ent: Entity | None) -> s.EventRecord:
+def to_record(
+    ev: Event, doc: Document, ent: Entity | None, sentiment: s.SentimentLabel | None = None
+) -> s.EventRecord:
     marker = to_marker(ev, doc, ent)
     return s.EventRecord(
         **marker.model_dump(),
-        sentiment=None,
+        sentiment=sentiment,
         confidence=ev.confidence,
         trigger=(
             s.Span(start=ev.trigger_start, end=ev.trigger_end)
@@ -259,6 +269,40 @@ def to_record(ev: Event, doc: Document, ent: Entity | None) -> s.EventRecord:
         arguments=_event_amount_args(ev),
         extractor=ev.extractor,
     )
+
+
+def event_records(db: Session, rows: Sequence[tuple[Event, Document, Entity | None]]) -> list[s.EventRecord]:
+    """Records carrying the company's sentiment as scored inside the trigger sentence, when it was."""
+    model = active_model(db)
+    scored: dict[tuple[int, int], list[tuple[int, str]]] = defaultdict(list)
+    pairs = {
+        (e.doc_id, e.entity_id) for e, _, _ in rows if e.entity_id is not None and e.trigger_start is not None
+    }
+    if pairs and model:
+        doc_ids = {d for d, _ in pairs}
+        for m, label in db.execute(
+            select(Mention, MentionSentiment.label)
+            .join(
+                MentionSentiment,
+                and_(MentionSentiment.mention_id == Mention.id, MentionSentiment.model_version == model),
+            )
+            .where(Mention.doc_id.in_(doc_ids), Mention.entity_id.is_not(None))
+        ):
+            scored[(m.doc_id, m.entity_id)].append((m.char_start, label))
+    out = []
+    for ev, doc, ent in rows:
+        label = None
+        if ev.entity_id is not None and ev.trigger_start is not None:
+            inside = [
+                lab
+                for at, lab in scored.get((ev.doc_id, ev.entity_id), [])
+                if ev.trigger_start <= at < ev.trigger_end
+            ]
+            label = (
+                max(set(inside), key=inside.count) if inside else None
+            )  # the most common label in the sentence
+        out.append(to_record(ev, doc, ent, label))
+    return out
 
 
 # --------------------------------------------------------------------------- documents
@@ -364,7 +408,7 @@ def document_detail(db: Session, doc: Document) -> s.DocumentDetail:
         ocr=doc.ocr_used,
         text=mask_pan(doc.clean_text),  # same length as the stored text, so offsets still line up
         spans=spans,
-        events=[to_record(*row) for row in event_markers(db, doc_id=doc.id)],
+        events=event_records(db, event_markers(db, doc_id=doc.id)),
         summary=latest_summary(db, doc_id=doc.id),
     )
 
@@ -382,8 +426,23 @@ def latest_summary(
         else stmt.where(Summary.entity_id == entity_id)
     )
     summary = db.scalar(stmt)
-    if summary is None:
-        return None
+    return summary_view(db, summary) if summary is not None else None
+
+
+def list_summaries(
+    db: Session, *, entity_slug: str | None = None, window: str | None = None, limit: int = 50
+) -> list[s.Summary]:
+    stmt = select(Summary).order_by(desc(Summary.generated_at), desc(Summary.id)).limit(limit)
+    if entity_slug:
+        stmt = stmt.join(Entity, Entity.id == Summary.entity_id).where(Entity.slug == entity_slug)
+    if window:
+        start = window_start(anchor_date(db), window)
+        if start is not None:
+            stmt = stmt.where((Summary.window_end >= start) | Summary.window_end.is_(None))
+    return [summary_view(db, row) for row in db.scalars(stmt)]
+
+
+def summary_view(db: Session, summary: Summary) -> s.Summary:
     claims = []
     for c in db.scalars(select(Claim).where(Claim.summary_id == summary.id).order_by(Claim.idx)):
         evidence = None
@@ -413,8 +472,20 @@ def latest_summary(
                 evidence=evidence,
             )
         )
+    subject = document_id = entity_id = None
+    if summary.doc_id is not None:
+        subject, document_id = (
+            db.scalar(select(Document.title).where(Document.id == summary.doc_id)),
+            str(summary.doc_id),
+        )
+    if summary.entity_id is not None:
+        ent = db.get(Entity, summary.entity_id)
+        subject, entity_id = (ent.canonical_name, ent.slug) if ent else (None, None)
     return s.Summary(
         id=str(summary.id),
+        subject=subject,
+        document_id=document_id,
+        entity_id=entity_id,
         scope="document" if summary.scope == "document" else "entity",
         model=summary.model,
         generated_at=summary.generated_at,
@@ -486,7 +557,70 @@ def company_detail(db: Session, slug: str, window: str) -> s.CompanyDetail | Non
     return s.CompanyDetail(
         entity=row,
         aliases=aliases,
-        events=[to_record(*r) for r in event_markers(db, entity_slug=slug)],
+        events=event_records(db, event_markers(db, entity_slug=slug)),
         mentions=mentions,
         summary=latest_summary(db, entity_id=ent.id),
+    )
+
+
+# --------------------------------------------------------------------------- search
+
+
+def search(db: Session, query: str, limit: int = 10) -> s.SearchResults:
+    """Companies by fuzzy alias match; filings by full-text search over sentences, one hit per document."""
+    from sqlalchemy import text
+
+    from finpulse.entities.names import normalise_name
+
+    norm = normalise_name(query) or query.lower()
+    company_rows = db.execute(
+        text(
+            """
+            SELECT e.slug, e.canonical_name, e.nse_symbol, max(similarity(a.alias_norm, :norm)) AS sim
+            FROM entity_aliases a JOIN entities e ON e.id = a.entity_id
+            WHERE e.kind IN ('company', 'bank')
+              AND (similarity(a.alias_norm, :norm) > 0.25 OR a.alias_norm LIKE :prefix)
+            GROUP BY e.id
+            ORDER BY sim DESC, e.canonical_name
+            LIMIT :limit
+            """
+        ),
+        {"norm": norm, "prefix": f"{norm}%", "limit": limit},
+    ).all()
+    hit_rows = db.execute(
+        text(
+            """
+            SELECT d.id, d.title, d.source_kind, d.published_at,
+                   ts_headline('english', s.text, q,
+                          'StartSel=<mark>,StopSel=</mark>,MaxWords=35,MinWords=8') AS snippet,
+                   ts_rank_cd(s.tsv, q) AS rank
+            FROM sentences s
+            JOIN documents d ON d.id = s.doc_id,
+                 websearch_to_tsquery('english', :q) q
+            WHERE s.tsv @@ q
+            ORDER BY rank DESC, d.id
+            LIMIT :pool
+            """
+        ),
+        {"q": query, "pool": limit * 6},
+    ).all()
+    seen: set[int] = set()
+    hits: list[s.SearchHit] = []
+    for doc_id, title, source, published, snippet, _ in hit_rows:
+        if doc_id in seen:
+            continue
+        seen.add(doc_id)
+        hits.append(
+            s.SearchHit(
+                document_id=str(doc_id), title=title, source=source, published_at=published, snippet=snippet
+            )
+        )
+        if len(hits) >= limit:
+            break
+    return s.SearchResults(
+        query=query,
+        companies=[
+            s.SearchCompany(id=slug, name=name, ticker=sym or "") for slug, name, sym, _ in company_rows
+        ],
+        filings=hits,
     )
