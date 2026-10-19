@@ -38,7 +38,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
-EMBEDDING_DIM = 1024  # BAAI/bge-m3
+EMBEDDING_DIM = 768  # BAAI/bge-base-en-v1.5
 
 SOURCE_KINDS = ("BSE", "NSE", "SEBI", "RBI", "NCLT", "NEWS")
 DOC_STATUSES = ("ingested", "parsed", "analysed", "failed")

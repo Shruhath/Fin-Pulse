@@ -58,13 +58,13 @@ def test_embedding_stage_fills_vectors_once_and_checks_the_dimension(db):
     assert stats.sentences == 4
     db.refresh(sents[0])
     vec = np.asarray(sents[0].embedding)
-    assert vec.shape == (1024,) and np.linalg.norm(vec) == pytest.approx(1.0, abs=1e-5)
+    assert vec.shape == (768,) and np.linalg.norm(vec) == pytest.approx(1.0, abs=1e-5)
     assert embed_pending(db, FakeEncoder()).sentences == 0
 
     class Small(FakeEncoder):
         dim = 32
 
-    with pytest.raises(ValueError, match="1024"):
+    with pytest.raises(ValueError, match="768"):
         embed_pending(db, Small())
 
 

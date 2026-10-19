@@ -457,7 +457,7 @@ def build_parser() -> argparse.ArgumentParser:
     ec.add_argument("--no-nli", action="store_true")
     ec.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
 
-    em = add("embed", _embed, "embed sentences with bge-m3 for dense retrieval")
+    em = add("embed", _embed, "embed sentences for dense retrieval")
     em.add_argument("--limit", type=int)
     em.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
 

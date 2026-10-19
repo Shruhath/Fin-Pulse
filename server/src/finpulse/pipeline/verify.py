@@ -115,7 +115,8 @@ def verify_pending(
             claims = list(
                 session.scalars(select(Claim).where(Claim.summary_id == summary.id).order_by(Claim.idx))
             )
-            vectors = encoder.encode([c.text for c in claims]) if encoder and claims else [None] * len(claims)
+            queries = getattr(encoder, "encode_queries", None) or (encoder.encode if encoder else None)
+            vectors = queries([c.text for c in claims]) if queries and claims else [None] * len(claims)
             for claim, vector in zip(claims, vectors, strict=True):
                 if not redo and claim.nli_entail is not None:
                     continue

@@ -18,7 +18,7 @@ def words(text: str) -> list[str]:
 class FakeEncoder:
     """Hashed bag-of-words vectors: sentences that share words are close in cosine distance."""
 
-    name, dim = "fake-bow", 1024
+    name, dim = "fake-bow", 768
 
     def encode(self, texts):
         out = np.zeros((len(texts), self.dim), dtype=np.float32)

@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     ollama_url: str = "http://127.0.0.1:11435"
     event_model: str = "qwen2.5:7b-instruct"
     summary_model: str = "llama3.1:8b-instruct-q4_K_M"
+    embedding_model: str = "BAAI/bge-base-en-v1.5"  # 768 dimensions; changing it means a new migration
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 

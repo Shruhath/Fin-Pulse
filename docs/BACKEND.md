@@ -35,7 +35,7 @@ uv run pytest && uv run ruff check . && uv run ruff format --check .
 | ner | `ner/`, `pipeline/ner.py` | CRF and DeBERTa token classifier find company names the gazetteer lacks |
 | events (rules) | `events/rules.py` | SEBI penalties, restraints and settlements, NCLT admissions, RBI actions |
 | sentiment | `sentiment/`, `pipeline/sentiment.py` | TF-IDF baseline or entity-marked FinBERT with temperature scaling |
-| embed | `embed/`, `pipeline/embed.py` | bge-m3 vectors in pgvector |
+| embed | `embed/`, `pipeline/embed.py` | bge-base-en-v1.5 vectors (768-d) in pgvector |
 | events (LLM) | `events/llm.py`, `pipeline/llm_events.py` | Qwen 2.5 7B, JSON-schema constrained, arguments validated against the taxonomy |
 | summaries | `summarize/`, `pipeline/summaries.py` | Llama 3.1 8B writes cited claims for a document or a company over a window |
 | verify | `verify/`, `pipeline/verify.py` | BM25 + dense retrieval fused with RRF, DeBERTa NLI: entailed, contradicted or unverified |
@@ -43,7 +43,7 @@ uv run pytest && uv run ruff check . && uv run ruff format --check .
 | orchestration | `pipeline/batch.py` | phases in the order that never puts two models on the GPU together |
 | live path | `pipeline/analyze.py`, `pipeline/jobs.py`, `pipeline/worker.py` | one document through every stage, progress on the job row; encoders on the CPU, LLM stages only when the models are available |
 
-**GPU budget.** 8 GB, so one model at a time. Encoders (FinBERT, bge-m3, NLI) run in their own phase and
+**GPU budget.** 8 GB, so one model at a time. Encoders (FinBERT, the embedder, NLI) run in their own phase and
 are released (`neural/device.release`) before Ollama loads Qwen; Qwen is unloaded before Llama; both
 are unloaded before the NLI phase. `OLLAMA_MAX_LOADED_MODELS=1` enforces it on the server side.
 
@@ -109,6 +109,9 @@ aliases and individuals are left out. Publishing it is a human decision. See `do
 - **Event schema** sent to the model is flat (type, trigger sentence, entity, arguments); arguments are
   validated against the per-type Pydantic models afterwards, which is where `schema_valid` comes from.
   Small models handle a flat schema far more reliably than a discriminated union.
+- **Embeddings** are BAAI/bge-base-en-v1.5 (768-d, English), not bge-m3 (1024-d, multilingual): the corpus is
+  English, the weights were already on this machine and bge-m3 is 2.3 GB at 1.2 MB/s. Queries get BGE's
+  retrieval instruction. Changing the model needs a migration (the column dimension).
 - **Retrieval** uses a hand-written BM25 over the candidate sentences instead of Postgres full-text
   rank, and pgvector cosine for the dense side; fusion is RRF with k = 60.
 - **BSE is not collected.** Its terms prohibit redistribution, its robots.txt is unreadable and the

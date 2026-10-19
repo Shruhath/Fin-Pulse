@@ -1,4 +1,4 @@
-"""Embedding stage: bge-m3 vectors for every sentence, stored in pgvector for dense retrieval."""
+"""Embedding stage: a vector per sentence, stored in pgvector for dense retrieval."""
 
 from __future__ import annotations
 

@@ -18,7 +18,7 @@ MODELS = {
     "finbert": ("ProsusAI/finbert", [*TOKENIZER, "*.safetensors", "pytorch_model.bin"]),
     "ner": ("microsoft/deberta-v3-base", [*TOKENIZER, "pytorch_model.bin"]),
     "nli": ("MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli", [*TOKENIZER, "*.safetensors", "pytorch_model.bin"]),
-    "embed": ("BAAI/bge-m3", [*TOKENIZER, "pytorch_model.bin"]),
+    "embed": ("BAAI/bge-base-en-v1.5", [*TOKENIZER, "*.safetensors"]),
 }
 
 
