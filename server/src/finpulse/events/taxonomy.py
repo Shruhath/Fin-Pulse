@@ -185,6 +185,31 @@ class AuditorResignationArgs(_Args):
     effective_date: date | None = None
 
 
+ARGUMENT_MODELS: dict[EventType, type[_Args]] = {
+    EventType.ACQUISITION: AcquisitionArgs,
+    EventType.CLINICAL_TRIAL: ClinicalTrialArgs,
+    EventType.GUIDANCE_CHANGE: GuidanceChangeArgs,
+    EventType.NEW_CONTRACT: NewContractArgs,
+    EventType.STOCK_REPURCHASE: StockRepurchaseArgs,
+    EventType.STOCK_SPLIT: StockSplitArgs,
+    EventType.REVERSE_SPLIT: ReverseSplitArgs,
+    EventType.REGULAR_DIVIDEND: RegularDividendArgs,
+    EventType.SPECIAL_DIVIDEND: SpecialDividendArgs,
+    EventType.DIVIDEND_CUT: DividendCutArgs,
+    EventType.DIVIDEND_INCREASE: DividendIncreaseArgs,
+    EventType.SEBI_PENALTY: SEBIPenaltyArgs,
+    EventType.RBI_ACTION: RBIActionArgs,
+    EventType.NCLT_ADMISSION: NCLTAdmissionArgs,
+    EventType.PLEDGE_INVOCATION: PledgeInvocationArgs,
+    EventType.AUDITOR_RESIGNATION: AuditorResignationArgs,
+}
+
+
+def argument_fields(event_type: EventType) -> list[str]:
+    """The argument names the model for `event_type` accepts (without the discriminator)."""
+    return [name for name in ARGUMENT_MODELS[event_type].model_fields if name != "type"]
+
+
 EventArgs = Annotated[
     AcquisitionArgs
     | ClinicalTrialArgs
