@@ -119,7 +119,7 @@ def summarise(
             if not last_error
             else f"{prompt}\n\nYour previous answer was rejected: {last_error}. Answer again."
         )
-        reply = llm.chat(model, SYSTEM, user, schema=SUMMARY_SCHEMA, num_predict=700)
+        reply = llm.chat(model, SYSTEM, user, schema=SUMMARY_SCHEMA, num_predict=1100)
         result.attempts = attempt
         result.prompt_tokens += reply.prompt_tokens
         result.completion_tokens += reply.completion_tokens
