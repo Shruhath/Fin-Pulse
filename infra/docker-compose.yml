@@ -23,5 +23,16 @@ services:
       timeout: 3s
       retries: 12
 
+  label-studio:
+    # only started on request: docker compose --profile annotation up -d label-studio
+    profiles: ["annotation"]
+    image: heartexlabs/label-studio:1.13.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - finpulse-labelstudio:/label-studio/data
+
 volumes:
   finpulse-db:
+  finpulse-labelstudio:
