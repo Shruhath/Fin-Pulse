@@ -88,8 +88,11 @@ def verify_pending(
     *,
     limit: int | None = None,
     redo: bool = False,
+    doc_id: int | None = None,
 ) -> VerifyStats:
     stmt = select(Summary).order_by(Summary.id)
+    if doc_id is not None:
+        stmt = stmt.where(Summary.doc_id == doc_id)
     if not redo:
         stmt = stmt.where(
             select(Claim.id).where(Claim.summary_id == Summary.id, Claim.nli_entail.is_(None)).exists()

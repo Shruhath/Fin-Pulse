@@ -1,3 +1,4 @@
+import json
 import socket
 import uuid
 
@@ -15,6 +16,13 @@ from finpulse.sentiment.baseline import SentimentBaseline, window_text
 from finpulse.sentiment.data import Example
 
 pytestmark = pytest.mark.db
+
+
+@pytest.fixture(autouse=True)
+def _no_llm_server(monkeypatch):
+    """Tests never reach a real Ollama; the ones that want one install a fake."""
+    monkeypatch.setattr(analyze_mod, "_llm_client", lambda: None)
+
 
 ORDER = (
     "In the matter of Raga Securities and Finance Private Limited.\n\n"
@@ -94,6 +102,7 @@ def _queued_job(client, db, text, source):
 
 def test_full_analysis_without_a_sentiment_model_says_what_it_skipped(client, db, monkeypatch):
     monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: None)
+    monkeypatch.setattr(analyze_mod, "_llm_client", lambda: None)
     job = _queued_job(client, db, ORDER, "SEBI")
     job.status, job.attempts = "running", 1
     run_analysis(db, job)
@@ -102,7 +111,7 @@ def test_full_analysis_without_a_sentiment_model_says_what_it_skipped(client, db
     assert job.status == "done"
     assert [stages[k]["status"] for k in ("ingest", "parse", "entities")] == ["done"] * 3
     assert stages["sentiment"]["status"] == "skipped" and "no sentiment model" in stages["sentiment"]["note"]
-    assert stages["events"]["status"] == "done" and "1 event" in stages["events"]["note"]
+    assert stages["events"]["status"] == "done" and "1 by rules" in stages["events"]["note"]
     assert stages["summary"]["status"] == "skipped"
 
     doc = db.get(Document, job.document_id)
@@ -242,3 +251,78 @@ def test_fetch_caps_the_download_size(monkeypatch):
 
     with pytest.raises(FetchRefused, match="larger than"):
         fetch("https://example.test/big", client=_client(handler))
+
+
+class _Server:
+    """A fake Ollama: knows both models and answers events and summaries from scripts."""
+
+    def __init__(self, event_answer, summary_answer):
+        self.event_answer, self.summary_answer, self.calls = event_answer, summary_answer, []
+
+    def models(self):
+        return ["qwen2.5:7b-instruct", "llama3.1:8b-instruct-q4_K_M"]
+
+    def has_model(self, name):
+        return name in self.models()
+
+    def chat(self, model, system, user, *, schema=None, num_predict=1024):
+        from finpulse.llm.client import Reply
+
+        self.calls.append(model)
+        body = self.event_answer if "events" in schema["properties"] else self.summary_answer
+        return Reply(json.dumps(body), model, 800, 60, 2.0)
+
+
+def test_with_both_models_up_the_live_path_adds_llm_events_a_summary_and_verification(
+    client, db, monkeypatch
+):
+    import numpy as np
+
+    from finpulse.preprocess.sentences import split_sentences
+
+    monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: None)
+    impose = next(i for i, sp in enumerate(split_sentences(ORDER)) if "hereby impose" in sp.slice(ORDER))
+    event = {
+        "trigger_sentence_id": impose,
+        "type": "SEBI Penalty",
+        "entity": "Raga Securities and Finance Private Limited",
+        "arguments": {"action": "penalty", "amount_inr": "Rs. 4,00,000/-"},
+    }
+    claim = {"text": "SEBI imposed a penalty of Rs. 4,00,000 on Raga.", "sources": []}
+    server = _Server({"events": [event]}, {"claims": [claim]})
+    monkeypatch.setattr(analyze_mod, "_llm_client", lambda: server)
+
+    class Judge:
+        name = "fake"
+
+        def predict(self, pairs):
+            return np.array([(0.95, 0.03, 0.02)] * len(pairs), dtype=np.float32)
+
+    monkeypatch.setattr(analyze_mod, "_judge", lambda: Judge())
+    job = _queued_job(client, db, ORDER, "SEBI")
+    job.status, job.attempts = "running", 1
+    run_analysis(db, job)
+
+    stages = {s["key"]: s for s in job.stages}
+    assert stages["events"]["status"] == "done" and "1 by rules" in stages["events"]["note"]
+    assert "1 by qwen2.5:7b-instruct" in stages["events"]["note"]
+    assert stages["summary"]["status"] == "done" and "1 claims" in stages["summary"]["note"]
+    assert stages["verify"]["status"] == "done" and "1 entailed" in stages["verify"]["note"]
+    assert server.calls == ["qwen2.5:7b-instruct", "llama3.1:8b-instruct-q4_K_M"]
+    extractors = {e.extractor for e in db.scalars(select(Event).where(Event.doc_id == job.document_id))}
+    assert extractors == {"rules", "llm"}
+
+
+def test_news_gets_llm_events_but_no_rule_events_when_the_model_is_up(client, db, monkeypatch):
+    monkeypatch.setattr(analyze_mod, "load_scoring_model", lambda **_: None)
+    server = _Server({"events": []}, {"claims": []})
+    monkeypatch.setattr(analyze_mod, "_llm_client", lambda: server)
+    monkeypatch.setattr(analyze_mod, "_judge", lambda: None)
+    job = _queued_job(
+        client, db, "Yes Bank shares rose on Monday after the bank reported strong quarterly results.", "NEWS"
+    )
+    job.status, job.attempts = "running", 1
+    run_analysis(db, job)
+    stages = {s["key"]: s for s in job.stages}
+    assert stages["events"]["note"] == "events: 0 by qwen2.5:7b-instruct"
+    assert stages["verify"]["status"] == "skipped"  # no claims were produced

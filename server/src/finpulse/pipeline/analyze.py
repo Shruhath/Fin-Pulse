@@ -20,17 +20,44 @@ from sqlalchemy.orm import Session
 from finpulse.core.settings import get_settings
 from finpulse.db.models import Document, Job
 from finpulse.ingest.fetch import FetchRefused, fetch
+from finpulse.llm.client import LlmError, OllamaClient
 from finpulse.parse import parse_html
 from finpulse.preprocess.clean import clean_pages
 
 from .events import extract_for_document
 from .jobs import finish, set_stage
 from .link import Linker, link_document
+from .llm_events import extract_llm_one
 from .parse import ParseResult, apply_parse, parse_raw, parse_text, resolve_raw
 from .sentiment import load_scoring_model, score_pending
+from .summaries import summarize_one
+from .verify import verify_pending
 
 log = logging.getLogger(__name__)
 MAX_TEXT_CHARS = 400_000
+_judge_cache: dict[str, object] = {}
+
+
+def _llm_client() -> OllamaClient | None:
+    """The local Ollama client when a server answers; None otherwise (LLM stages are then skipped)."""
+    client = OllamaClient()
+    try:
+        client.models()
+    except Exception:
+        return None
+    return client
+
+
+def _judge():
+    """The NLI model on the CPU, loaded once per process; None when the neural extra is not installed."""
+    if "nli" not in _judge_cache:
+        try:
+            from finpulse.verify.nli import Nli
+
+            _judge_cache["nli"] = Nli(device="cpu")
+        except ImportError:
+            _judge_cache["nli"] = None
+    return _judge_cache["nli"]
 
 
 def _sha(data: bytes) -> str:
@@ -175,24 +202,76 @@ def run_analysis(session: Session, job: Job) -> None:
 
         _timed(session, job, "sentiment", sentiment)
 
-    if doc.source_kind in {"SEBI", "NCLT", "RBI"}:
+    llm = _llm_client()
+    cfg = get_settings()
+    rules_cover = doc.source_kind in {"SEBI", "NCLT", "RBI"}
+    event_llm = llm is not None and llm.has_model(cfg.event_model)
 
-        def events() -> str | None:
-            n = extract_for_document(session, doc)
-            session.commit()
-            return f"{n} event{'s' if n != 1 else ''} (rules)"
-
-        _timed(session, job, "events", events)
-    else:
+    if not rules_cover and not event_llm:
         _skip(
             session,
             job,
             "events",
-            "the rule baseline covers SEBI, NCLT and RBI documents; the LLM stage is not enabled",
+            "rules cover SEBI, NCLT and RBI documents, and the event model is not available",
         )
+    else:
 
-    _skip(session, job, "summary", "the summary stage needs the local LLM, which is not enabled yet")
-    _skip(session, job, "verify", "nothing to verify without a summary")
+        def events() -> str | None:
+            parts = []
+            if rules_cover:
+                n = extract_for_document(session, doc)
+                session.commit()
+                parts.append(f"{n} by rules")
+            if event_llm:
+                try:
+                    outcome = extract_llm_one(session, llm, cfg.event_model, doc)
+                    parts.append(f"{outcome.stored} by {cfg.event_model}")
+                except LlmError as exc:
+                    parts.append(f"LLM failed: {exc}")
+            return "events: " + ", ".join(parts)
+
+        _timed(session, job, "events", events)
+
+    summary_llm = llm is not None and llm.has_model(cfg.summary_model)
+    summary_made = False
+    if not summary_llm:
+        _skip(
+            session,
+            job,
+            "summary",
+            f"the summary model {cfg.summary_model} is not available (scripts/ollama-local.sh pull)",
+        )
+    else:
+
+        def summary() -> str | None:
+            nonlocal summary_made
+            try:
+                made = summarize_one(session, llm, cfg.summary_model, doc)
+            except LlmError as exc:
+                return f"the model gave no usable summary: {exc}"
+            session.commit()
+            summary_made = made is not None
+            return f"{len(made.claims)} claims" if made else "too little text to summarise"
+
+        _timed(session, job, "summary", summary)
+
+    if not summary_made:
+        _skip(session, job, "verify", "nothing to verify without a summary")
+    else:
+
+        def verify() -> str | None:
+            judge = _judge()
+            if judge is None:
+                return "claims left unverified: the neural extra is not installed"
+            stats = verify_pending(
+                session, judge, None, doc_id=doc.id
+            )  # BM25 over the document plus cited sentences
+            return (
+                f"{stats.entailed} entailed, {stats.contradicted} contradicted, "
+                f"{stats.unverified} unverified (sparse retrieval only in live mode)"
+            )
+
+        _timed(session, job, "verify", verify)
 
     doc.status = "analysed"
     finish(session, job)

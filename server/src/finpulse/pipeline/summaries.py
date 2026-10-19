@@ -139,6 +139,18 @@ def _count(stats: SummaryStats, result: SummaryResult) -> None:
     stats.dropped_sources += result.dropped_sources
 
 
+def summarize_one(
+    session: Session, llm: Llm, model: str, doc: Document, run_id: int | None = None
+) -> Summary | None:
+    """Summarise one document (replacing its earlier summary). None when there is too little evidence."""
+    evidence = document_evidence(session, doc)
+    if len(evidence) < 2:
+        return None
+    result = summarise(llm, model, subject=doc.title, scope="document", evidence=evidence)
+    session.execute(delete(Summary).where(Summary.doc_id == doc.id, Summary.scope == "document"))
+    return _store(session, result, scope="document", model=model, run_id=run_id, doc_id=doc.id)
+
+
 def summarize_documents(
     session: Session, llm: Llm, model: str, *, limit: int | None = None, redo: bool = False
 ) -> SummaryStats:

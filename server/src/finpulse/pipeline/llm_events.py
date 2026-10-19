@@ -175,3 +175,14 @@ def llm_extract_pending(
             stats.dropped.update(result.dropped)
             session.commit()
     return stats
+
+
+def extract_llm_one(session: Session, llm: Llm, model: str, doc: Document) -> DocOutcome:
+    """The LLM events of a single document, with a run record (the live analysis path)."""
+    resolver = Resolver.from_session(session)
+    with recorded_run(
+        session, "events-llm", model=model, prompt_version=PROMPT_VERSION, params={"documents": 1}
+    ) as run:
+        outcome = extract_for_document(session, llm, model, doc, resolver, run.id)
+        session.commit()
+    return outcome
