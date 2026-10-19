@@ -211,3 +211,32 @@ Caveat: every request to mca.gov.in and data.gov.in returned 403, so no page was
 - **Mint** terms and RSS.
 - **IEEE DataPort:** student subscription eligibility, formal versioning, public visibility of draft pages.
 - **Mendeley** SEBI archive contents; **GLEIF** Indian coverage; **Indian Legal Documents With Summaries** being a re-host.
+
+---
+
+## 12. Getting files from IEEE DataPort (observed 19 Oct 2026)
+
+Order, cheapest first:
+
+1. **Free IEEE accounts.** Stock Market Tweets Data is Open Access (files for any logged-in user). Several public DataPort profiles show "Subscriber Organization: Amrita Vishwa Vidyapeetham - Coimbatore", which suggests an institutional plan (unconfirmed on any official page). If a Standard dataset page then shows download links instead of "LOGIN TO ACCESS DATASET FILES", the college plan works for you.
+2. **Zenodo instead of DataPort for the legal set:** IN-Abs, CC BY 4.0, `zenodo.org/record/7151679` (the DataPort copy has the same 7,030/100 split, very likely a re-upload).
+3. **Ask the college:** Central Library (is there a DataPort institutional subscription? DataPort is sold separately from IEEE Xplore; who is the admin; how do students link accounts?), the department (can it fund one month, $40?), and the IEEE student branch counselor (current dues; can a Society member test the free subscription?). IEEE publishes no list of subscribing institutions; institutional pricing is "$4,500 to $29,995 per year" on request.
+4. **Message the dataset authors** (every page has "Send Author a Private Message"; free account is enough).
+5. **One teammate pays $40 for one month**, downloads everything in one sitting, and cancels the same day. Do not buy three accounts: Terms §2(c)(ii) forbid sharing credentials.
+6. **Student membership plus a Society is not recommended first.** The free subscription is for "All IEEE Society members"; student eligibility is unconfirmed; IEEE's own dues could not be read.
+
+| Dataset | Access | Size | Mirror |
+|---|---|---|---|
+| BSE earnings-call transcripts 2015–25 (`57hq-gm60`) | Standard | 249 MB | none (transcripts are public exchange filings) |
+| Financial Annual Reports Insights (`hpt6-8r75`) | Standard | about 7 MB | none |
+| MC-GAN Master Dataset (`tkvx-aw90`) | Standard | 22 MB | none |
+| COPOM-Inflation (`zd8v-z019`) | Standard | 50 MB | none (Portuguese, weak fit) |
+| Stock Market Tweets (`g8vy-5w61`) | **Open Access** | 56 MB | none |
+| Indian Legal Documents With Summaries (`3qjh-9v79`) | Standard | 93 MB | **Zenodo IN-Abs** |
+
+- **Open Access list:** `ieee-dataport.org/datasets?type=open_access` (about 1,080 datasets, 7 in Financial, none Indian finance).
+- **Downloaded files:** the terms don't say whether files may be passed to teammates, and IEEE can suspend accounts for "unauthorized public sharing". Keep raw IEEE files out of the public repo.
+- **Download method for subscribers:** web Download tab or `aws s3 cp` with keys from the Account page. No public API found.
+- **Author message template (4 lines):** "Subject: Research copy request - '<title>' (DOI <doi>). Hello <Name>, we are undergraduate NLP students at Amrita School of Computing, Coimbatore, building FinPulse, a non-commercial course project on Indian financial text. We would like to use '<title>' for <specific use>; the files are behind a paid subscription. Could you share the files or a mirror link for academic use? We will cite the DOI and credit your team."
+- **Unverified:** student eligibility for the free subscription; how Amrita accounts link to an institutional plan; whether a free login really unlocks Open Access files (the page also shows "requires an IEEE DataPort Subscription" template text); IEEE student dues for India.
+- **If none works:** rebuild the transcripts and annual-reports sets from public BSE/NSE filings, and use Zenodo for the legal set.
