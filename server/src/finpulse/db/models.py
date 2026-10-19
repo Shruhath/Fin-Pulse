@@ -284,6 +284,7 @@ class Claim(Base):
     nli_contra: Mapped[float | None] = mapped_column(Float)
     evidence_sentence_id: Mapped[int | None] = mapped_column(ForeignKey("sentences.id", ondelete="SET NULL"))
     retrieval_rank: Mapped[int | None] = mapped_column(Integer)
+    cited: Mapped[list[int]] = mapped_column(JSONB, nullable=False, server_default=sql_text("'[]'::jsonb"))
 
     summary: Mapped[Summary] = relationship(back_populates="claims")
 
@@ -361,3 +362,18 @@ class EvalResult(Base):
     git_sha: Mapped[str | None] = mapped_column(String(40))
     data_hash: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+
+
+class Agreement(Base):
+    """Inter-annotator agreement on the calibration set, one row per task and measure."""
+
+    __tablename__ = "agreements"
+    __table_args__ = (UniqueConstraint("task", "measure", "annotators"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    task: Mapped[str] = mapped_column(String(24), nullable=False)
+    measure: Mapped[str] = mapped_column(String(24), nullable=False)  # cohen_kappa | fleiss_kappa | span_f1
+    annotators: Mapped[str] = mapped_column(String(96), nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    items: Mapped[int] = mapped_column(Integer, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
