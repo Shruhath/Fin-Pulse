@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -203,6 +203,14 @@ ARGUMENT_MODELS: dict[EventType, type[_Args]] = {
     EventType.PLEDGE_INVOCATION: PledgeInvocationArgs,
     EventType.AUDITOR_RESIGNATION: AuditorResignationArgs,
 }
+
+
+def argument_choices(event_type: EventType, key: str) -> list[str] | None:
+    """The allowed values of an argument typed as a Literal, or None when it is free text."""
+    for arg in get_args(ARGUMENT_MODELS[event_type].model_fields[key].annotation):
+        if get_origin(arg) is Literal:
+            return [str(v) for v in get_args(arg)]
+    return None
 
 
 def argument_fields(event_type: EventType) -> list[str]:

@@ -15,16 +15,16 @@ import logging
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
-from typing import Any, Literal, get_args, get_origin
+from typing import Any
 
 from finpulse.llm.client import Llm, LlmError
 from finpulse.preprocess.normalize import find_amounts, find_dates
 
-from .taxonomy import ARGUMENT_MODELS, DEFINITIONS, EventType, argument_fields, validate_arguments
+from .taxonomy import DEFINITIONS, EventType, argument_choices, argument_fields, validate_arguments
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = "events-v1"
+PROMPT_VERSION = "events-v2"
 MAX_ATTEMPTS = 3  # the first try and two retries
 
 EVENT_RESPONSE_SCHEMA: dict[str, Any] = {
@@ -79,10 +79,17 @@ class ExtractionResult:
     seconds: float = 0.0
 
 
+def _argument_spec(event_type: EventType, key: str) -> str:
+    choices = argument_choices(event_type, key)
+    return f"{key} (exactly one of: {', '.join(choices)})" if choices else key
+
+
 def taxonomy_text() -> str:
-    return "\n".join(
-        f"- {t.value}: {DEFINITIONS[t]} Arguments: {', '.join(argument_fields(t))}." for t in EventType
-    )
+    lines = []
+    for t in EventType:
+        args = ", ".join(_argument_spec(t, k) for k in argument_fields(t))
+        lines.append(f"- {t.value}: {DEFINITIONS[t]} Arguments: {args}.")
+    return "\n".join(lines)
 
 
 def build_prompt(
@@ -110,12 +117,40 @@ def _amount(value: Any) -> Decimal | None:
         return None
 
 
-def _literal_values(event_type: EventType, key: str) -> set[str] | None:
-    """The allowed values of an argument typed as a Literal, or None when it is not one."""
-    for arg in get_args(ARGUMENT_MODELS[event_type].model_fields[key].annotation):
-        if get_origin(arg) is Literal:
-            return {str(v) for v in get_args(arg)}
-    return None
+# Models often answer an enum argument with a phrase ("impose a penalty"). A phrase that contains exactly one
+# of these keywords is mapped to its value; anything else stays as written and fails validation.
+ENUM_HINTS: dict[str, list[tuple[str, str]]] = {
+    "action": [
+        ("penalt", "penalty"),
+        ("restrain", "restraint"),
+        ("debar", "restraint"),
+        ("prohibit", "restraint"),
+        ("settle", "settlement"),
+    ],
+    "applicant_type": [
+        ("operational", "operational creditor"),
+        ("financial", "financial creditor"),
+        ("corporate applicant", "corporate applicant"),
+    ],
+    "direction": [
+        ("rais", "raise"),
+        ("increas", "raise"),
+        ("cut", "cut"),
+        ("lower", "cut"),
+        ("reduc", "cut"),
+        ("withdr", "withdraw"),
+        ("maintain", "maintain"),
+        ("reaffirm", "maintain"),
+    ],
+}
+
+
+def _enum_value(key: str, value: object, choices: list[str]) -> str:
+    text = str(value).strip().lower()
+    if text in choices:
+        return text
+    found = {target for word, target in ENUM_HINTS.get(key, []) if word in text}
+    return found.pop() if len(found) == 1 else str(value)
 
 
 def normalise_arguments(
@@ -160,11 +195,8 @@ def normalise_arguments(
                 typed[key] = int(str(value).replace(",", ""))
             except ValueError:
                 typed[key] = str(value)
-        elif (choices := _literal_values(event_type, key)) is not None:
-            text = str(value).strip().lower()
-            typed[key] = (
-                text if text in choices else str(value)
-            )  # "Operational Creditor" -> "operational creditor"
+        elif (choices := argument_choices(event_type, key)) is not None:
+            typed[key] = _enum_value(key, value, choices)  # "Operational Creditor" -> "operational creditor"
         else:
             typed[key] = value
     return stored, typed, amount

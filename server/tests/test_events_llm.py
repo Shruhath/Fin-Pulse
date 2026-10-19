@@ -56,6 +56,7 @@ def test_prompt_lists_every_type_the_entities_and_numbered_sentences():
         entities=["Raga Securities Ltd"], shown=SHOWN,
     )  # fmt: skip
     assert all(t.value in prompt for t in EventType)
+    assert "action (exactly one of: penalty, restraint, settlement)" in prompt
     assert "[S3] I hereby impose" in prompt and "[S9] The matter" in prompt
     assert "Raga Securities Ltd" in prompt and "SEBI (SEBI adjudication order)" in prompt
     assert "never infer" in SYSTEM and EVENT_RESPONSE_SCHEMA["required"] == ["events"]
@@ -149,3 +150,33 @@ def test_enum_arguments_are_matched_ignoring_case_and_moratorium_text_counts_as_
     assert normalise_arguments(EventType.NCLT_ADMISSION, {"moratorium": "No"})[1]["moratorium"] is False
     _, bad, _ = normalise_arguments(EventType.NCLT_ADMISSION, {"applicant_type": "the bank"})
     assert bad["applicant_type"] == "the bank" and not validate_arguments(EventType.NCLT_ADMISSION, bad)
+
+
+@pytest.mark.parametrize(
+    ("phrase", "value"),
+    [
+        ("impose a penalty", "penalty"),
+        ("levied monetary penalty", "penalty"),
+        ("restrained from the market", "restraint"),
+        ("debarred for two years", "restraint"),
+        ("accepted the settlement", "settlement"),
+    ],
+)  # fmt: skip
+def test_phrases_for_the_action_map_to_one_value_and_unclear_ones_stay_invalid(phrase, value):
+    _, typed, _ = normalise_arguments(EventType.SEBI_PENALTY, {"action": phrase})
+    assert typed["action"] == value
+    _, mixed, _ = normalise_arguments(EventType.SEBI_PENALTY, {"action": "penalty and restraint"})
+    assert mixed["action"] == "penalty and restraint" and not validate_arguments(
+        EventType.SEBI_PENALTY, mixed
+    )
+
+
+def test_a_creditor_name_in_applicant_type_is_not_guessed():
+    _, typed, _ = normalise_arguments(EventType.NCLT_ADMISSION, {"applicant_type": "State Bank of India"})
+    assert typed["applicant_type"] == "State Bank of India"
+    assert (
+        normalise_arguments(EventType.NCLT_ADMISSION, {"applicant_type": "Financial Creditor/Applicant"})[1][
+            "applicant_type"
+        ]
+        == "financial creditor"
+    )

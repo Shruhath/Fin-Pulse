@@ -81,7 +81,7 @@ def test_events_are_stored_against_the_trigger_sentence_and_the_resolved_entity(
     assert ev.confidence is None and ev.schema_valid
     assert doc.clean_text[ev.trigger_start : ev.trigger_end].startswith("I hereby impose")
     run = db.scalar(select(Run).where(Run.stage == "events-llm"))
-    assert run.model == "qwen2.5:7b-instruct" and run.prompt_version == "events-v1" and run.status == "done"
+    assert run.model == "qwen2.5:7b-instruct" and run.prompt_version == "events-v2" and run.status == "done"
     assert "[S" in llm.prompts[0] and "Raga Securities" in llm.prompts[0]
 
 
