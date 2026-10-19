@@ -15,12 +15,12 @@ import logging
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Literal, get_args, get_origin
 
 from finpulse.llm.client import Llm, LlmError
 from finpulse.preprocess.normalize import find_amounts, find_dates
 
-from .taxonomy import DEFINITIONS, EventType, argument_fields, validate_arguments
+from .taxonomy import ARGUMENT_MODELS, DEFINITIONS, EventType, argument_fields, validate_arguments
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +110,14 @@ def _amount(value: Any) -> Decimal | None:
         return None
 
 
+def _literal_values(event_type: EventType, key: str) -> set[str] | None:
+    """The allowed values of an argument typed as a Literal, or None when it is not one."""
+    for arg in get_args(ARGUMENT_MODELS[event_type].model_fields[key].annotation):
+        if get_origin(arg) is Literal:
+            return {str(v) for v in get_args(arg)}
+    return None
+
+
 def normalise_arguments(
     event_type: EventType, raw: dict[str, Any]
 ) -> tuple[dict[str, str], dict[str, Any], Decimal | None]:
@@ -137,13 +145,26 @@ def normalise_arguments(
             typed[key] = dates[0].value if dates else str(value)
         elif key == "provisions":
             typed[key] = [p.strip() for p in re.split(r"[;|]", str(value)) if p.strip()]
-        elif key in {"moratorium"}:
-            typed[key] = str(value).lower() in {"true", "yes", "1"}
+        elif key == "moratorium":
+            # a bare yes/no, or a description of the moratorium: only an explicit no means there is none
+            typed[key] = str(value).strip().lower() not in {
+                "false",
+                "no",
+                "0",
+                "none",
+                "n/a",
+                "not applicable",
+            }
         elif key == "shares":
             try:
                 typed[key] = int(str(value).replace(",", ""))
             except ValueError:
                 typed[key] = str(value)
+        elif (choices := _literal_values(event_type, key)) is not None:
+            text = str(value).strip().lower()
+            typed[key] = (
+                text if text in choices else str(value)
+            )  # "Operational Creditor" -> "operational creditor"
         else:
             typed[key] = value
     return stored, typed, amount

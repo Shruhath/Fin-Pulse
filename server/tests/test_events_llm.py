@@ -11,7 +11,7 @@ from finpulse.events.llm import (
     normalise_arguments,
     parse_events,
 )
-from finpulse.events.taxonomy import EventType
+from finpulse.events.taxonomy import EventType, validate_arguments
 from finpulse.llm.client import LlmError, LlmUnavailable, Reply
 
 
@@ -132,3 +132,20 @@ def test_an_empty_list_is_a_valid_answer():
         FakeLlm('{"events": []}'), "qwen", title="t", source="SEBI", doc_type=None, entities=[], shown=SHOWN
     )
     assert result.drafts == [] and result.attempts == 1
+
+
+def test_enum_arguments_are_matched_ignoring_case_and_moratorium_text_counts_as_yes():
+    stored, typed, _ = normalise_arguments(
+        EventType.NCLT_ADMISSION,
+        {
+            "applicant_type": "Operational Creditor",
+            "moratorium": "from the date of the order",
+            "section": "9",
+        },
+    )
+    assert typed["applicant_type"] == "operational creditor" and typed["moratorium"] is True
+    assert stored["applicant_type"] == "Operational Creditor"  # what the model said is kept as written
+    assert validate_arguments(EventType.NCLT_ADMISSION, typed)
+    assert normalise_arguments(EventType.NCLT_ADMISSION, {"moratorium": "No"})[1]["moratorium"] is False
+    _, bad, _ = normalise_arguments(EventType.NCLT_ADMISSION, {"applicant_type": "the bank"})
+    assert bad["applicant_type"] == "the bank" and not validate_arguments(EventType.NCLT_ADMISSION, bad)
