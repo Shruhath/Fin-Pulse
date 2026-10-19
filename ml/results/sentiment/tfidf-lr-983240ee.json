@@ -1,0 +1,177 @@
+{
+  "model": "tfidf-lr",
+  "version": "tfidf-lr@983240ee",
+  "generated_at": "2026-10-19T12:03:47+00:00",
+  "git_sha": "1d00f1cb3afa5e7ac6b83341c0874733cba1eca5",
+  "data_hash": "aa4da515e9d1f85695228973ed1bd3f3fecd63045d0b392977da2afb908f7612",
+  "window": 10,
+  "train_examples": 13248,
+  "rows": [
+    {
+      "stage": "sentiment",
+      "model": "TF-IDF + logistic regression (tfidf-lr@983240ee)",
+      "baseline": true,
+      "dataset": "FinEntity test",
+      "split": "test",
+      "indian": false,
+      "metrics": {
+        "macroF1": 0.7535803854012258,
+        "weightedF1": 0.7674537977875622,
+        "accuracy": 0.7671232876712328,
+        "ece": 0.0399297649580175,
+        "n": 219.0
+      },
+      "detail": {
+        "labels": [
+          "negative",
+          "neutral",
+          "positive"
+        ],
+        "confusion": [
+          [
+            38,
+            8,
+            6
+          ],
+          [
+            10,
+            92,
+            12
+          ],
+          [
+            0,
+            15,
+            38
+          ]
+        ],
+        "reliability": [
+          {
+            "confidence": 0.3662047566687646,
+            "accuracy": 0.25,
+            "n": 4
+          },
+          {
+            "confidence": 0.45841303707837405,
+            "accuracy": 0.47368421052631576,
+            "n": 19
+          },
+          {
+            "confidence": 0.5433177371119776,
+            "accuracy": 0.5135135135135135,
+            "n": 37
+          },
+          {
+            "confidence": 0.6583420318875706,
+            "accuracy": 0.6,
+            "n": 20
+          },
+          {
+            "confidence": 0.7461830392129292,
+            "accuracy": 0.896551724137931,
+            "n": 29
+          },
+          {
+            "confidence": 0.8534665253492483,
+            "accuracy": 0.8333333333333334,
+            "n": 36
+          },
+          {
+            "confidence": 0.9508842767928742,
+            "accuracy": 0.9594594594594594,
+            "n": 74
+          }
+        ]
+      },
+      "counts": {
+        "train": 1716,
+        "dev": 196,
+        "test": 219
+      },
+      "dropped": {}
+    },
+    {
+      "stage": "sentiment",
+      "model": "TF-IDF + logistic regression (tfidf-lr@983240ee)",
+      "baseline": true,
+      "dataset": "SEntFiN test",
+      "split": "test",
+      "indian": true,
+      "metrics": {
+        "macroF1": 0.8013848071170443,
+        "weightedF1": 0.8019493041914779,
+        "accuracy": 0.8021352313167259,
+        "ece": 0.023860603223846977,
+        "n": 1405.0
+      },
+      "detail": {
+        "labels": [
+          "negative",
+          "neutral",
+          "positive"
+        ],
+        "confusion": [
+          [
+            275,
+            47,
+            27
+          ],
+          [
+            46,
+            419,
+            73
+          ],
+          [
+            22,
+            63,
+            433
+          ]
+        ],
+        "reliability": [
+          {
+            "confidence": 0.37364648643525167,
+            "accuracy": 0.4,
+            "n": 5
+          },
+          {
+            "confidence": 0.45930826692866755,
+            "accuracy": 0.3698630136986301,
+            "n": 73
+          },
+          {
+            "confidence": 0.5475214863520417,
+            "accuracy": 0.5933333333333334,
+            "n": 150
+          },
+          {
+            "confidence": 0.6436148789410172,
+            "accuracy": 0.650887573964497,
+            "n": 169
+          },
+          {
+            "confidence": 0.7521779224503715,
+            "accuracy": 0.7017543859649122,
+            "n": 171
+          },
+          {
+            "confidence": 0.8510011278188657,
+            "accuracy": 0.8711111111111111,
+            "n": 225
+          },
+          {
+            "confidence": 0.9617889591339182,
+            "accuracy": 0.9526143790849673,
+            "n": 612
+          }
+        ]
+      },
+      "counts": {
+        "train": 11532,
+        "dev": 1448,
+        "test": 1405
+      },
+      "dropped": {
+        "entity not in title": 19
+      }
+    }
+  ]
+}
