@@ -26,7 +26,7 @@ def recorded_run(
     started = datetime.now(UTC)
     run = Run(stage=stage, model=model, prompt_version=prompt_version, params=params or {}, status="running")
     session.add(run)
-    session.flush()
+    session.commit()  # durable from the start, so a rollback inside the stage keeps its run row
     t0 = time.monotonic()
     try:
         yield run
