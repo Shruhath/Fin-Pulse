@@ -23,6 +23,7 @@ def recorded_run(
     params: dict[str, Any] | None = None,
 ) -> Iterator[Run]:
     """Open a `runs` row, and close it as done or failed with its latency."""
+    started = datetime.now(UTC)
     run = Run(stage=stage, model=model, prompt_version=prompt_version, params=params or {}, status="running")
     session.add(run)
     session.flush()
@@ -30,11 +31,24 @@ def recorded_run(
     try:
         yield run
     except BaseException as exc:
-        run.status, run.error = "failed", f"{type(exc).__name__}: {exc}"[:2000]
+        # Whatever the stage did is rolled back, so the failure is recorded in a fresh transaction.
+        session.rollback()
+        session.add(
+            Run(
+                stage=stage,
+                model=model,
+                prompt_version=prompt_version,
+                params=params or {},
+                started_at=started,
+                finished_at=datetime.now(UTC),
+                latency_ms=int((time.monotonic() - t0) * 1000),
+                status="failed",
+                error=f"{type(exc).__name__}: {exc}"[:2000],
+            )
+        )
+        session.commit()
         raise
-    else:
-        run.status = "done"
-    finally:
-        run.finished_at = datetime.now(UTC)
-        run.latency_ms = int((time.monotonic() - t0) * 1000)
-        session.flush()
+    run.status = "done"
+    run.finished_at = datetime.now(UTC)
+    run.latency_ms = int((time.monotonic() - t0) * 1000)
+    session.flush()
