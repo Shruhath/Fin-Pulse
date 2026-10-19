@@ -5,10 +5,12 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from finpulse.api import schemas as s
 from finpulse.api.deps import get_db
+from finpulse.db.models import Job
 from finpulse.pipeline import analyze as pipeline
 from finpulse.pipeline.jobs import enqueue, get_job
 
@@ -17,7 +19,13 @@ Db = Annotated[Session, Depends(get_db)]
 MAX_UPLOAD = 15 * 1024 * 1024
 
 
+MAX_QUEUED = 50  # one GPU worker: a longer queue only means longer waits, so say no instead
+
+
 def _accepted(db: Session, payload: dict, doc_id: int | None) -> s.AnalyzeAccepted:
+    waiting = db.scalar(select(func.count()).select_from(Job).where(Job.status == "queued")) or 0
+    if waiting >= MAX_QUEUED:
+        raise HTTPException(429, "the analysis queue is full; try again in a few minutes")
     job = enqueue(db, "analyze", payload, document_id=doc_id)
     db.commit()
     return s.AnalyzeAccepted(job_id=str(job.id))

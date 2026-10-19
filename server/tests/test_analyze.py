@@ -326,3 +326,16 @@ def test_news_gets_llm_events_but_no_rule_events_when_the_model_is_up(client, db
     stages = {s["key"]: s for s in job.stages}
     assert stages["events"]["note"] == "events: 0 by qwen2.5:7b-instruct"
     assert stages["verify"]["status"] == "skipped"  # no claims were produced
+
+
+def test_a_full_queue_answers_429_instead_of_growing(client, db, monkeypatch):
+    from finpulse.api.routers import analyze as router
+
+    monkeypatch.setattr(router, "MAX_QUEUED", 2)
+    for i in range(2):
+        assert (
+            client.post("/api/analyze", json={"text": f"Some text number {i} about Yes Bank."}).status_code
+            == 202
+        )
+    full = client.post("/api/analyze", json={"text": "One more text about Yes Bank."})
+    assert full.status_code == 429 and "queue is full" in full.json()["detail"]
