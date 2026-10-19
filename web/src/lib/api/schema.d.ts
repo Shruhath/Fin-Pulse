@@ -609,6 +609,8 @@ export interface components {
             gpu: string | null;
             /** Ollama */
             ollama: boolean;
+            /** Ollamamodels */
+            ollamaModels: string[];
             /** Queuedjobs */
             queuedJobs: number;
             /** Sentimentmodel */

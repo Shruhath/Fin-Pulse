@@ -292,6 +292,7 @@ class Health(Api):
     status: Literal["ok", "degraded"]
     database: bool
     ollama: bool
+    ollama_models: list[str]
     gpu: str | None
     tesseract: str | None
     sentiment_model: str | None

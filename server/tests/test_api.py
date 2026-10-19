@@ -324,6 +324,7 @@ def test_a_stored_summary_is_returned_with_its_evidence_sentence(client, db):
 def test_health_and_config(client):
     health = client.get("/api/health").json()
     assert health["database"] is True and health["status"] == "ok" and health["queuedJobs"] == 0
+    assert isinstance(health["ollamaModels"], list)
     cfg = client.get("/api/pipeline/config").json()
     assert cfg["scoreBand"] == 0.15 and cfg["eventModel"]
 
