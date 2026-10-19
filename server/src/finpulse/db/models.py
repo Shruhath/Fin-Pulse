@@ -377,3 +377,28 @@ class Agreement(Base):
     value: Mapped[float] = mapped_column(Float, nullable=False)
     items: Mapped[int] = mapped_column(Integer, nullable=False)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+
+
+class GoldPassage(Base):
+    """A frozen passage that annotators label. Its text never changes once selected: the hash proves it."""
+
+    __tablename__ = "gold_passages"
+    __table_args__ = (
+        UniqueConstraint("doc_id", "char_start", "char_end"),
+        CheckConstraint("char_end > char_start", name="span"),
+        CheckConstraint("role IN ('calibration', 'gold', 'dev')", name="role"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    char_start: Mapped[int] = mapped_column(Integer, nullable=False)
+    char_end: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    text_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    stratum: Mapped[str] = mapped_column(String(64), nullable=False)
+    has_rule_event: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
+    role: Mapped[str] = mapped_column(String(12), nullable=False, server_default="gold")
+    ocr: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
+    ocr_engine: Mapped[str | None] = mapped_column(String(64))
+    ocr_dpi: Mapped[int | None] = mapped_column(Integer)
+    selected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
