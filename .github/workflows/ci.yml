@@ -38,9 +38,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: server/uv.lock
       - name: Install dependencies
-        run: uv sync --extra ml --frozen
+        run: uv sync --extra ml --extra neural --extra export --frozen
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
+      - name: The OpenAPI contract is current
+        run: uv run finpulse openapi --check
       - name: Test
         run: uv run pytest
         env:
