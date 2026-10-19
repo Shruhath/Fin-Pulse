@@ -55,9 +55,15 @@ def _score_rows(data: NerData, label: str, baseline: bool, predict) -> list[dict
     return rows
 
 
+def _clean_aliases(stmt):
+    """SEntFiN's entity list was built from the same headlines the SEntFiN test split holds, so its aliases
+    are left out of every gazetteer used here; only the NSE master and the corpus titles remain."""
+    return stmt.where(EntityAlias.origin != "sentfin")
+
+
 def gazetteer_predictor(session: Session):
     matcher = AliasMatcher()
-    matcher.extend(session.execute(select(EntityAlias.alias, EntityAlias.entity_id)).all())
+    matcher.extend(session.execute(_clean_aliases(select(EntityAlias.alias, EntityAlias.entity_id))).all())
     return lambda s: [(m.span.start, m.span.end) for m in matcher.find(s.text)]
 
 
@@ -69,7 +75,7 @@ def train_and_evaluate(
     train, dev = data.by_split("train"), data.by_split("dev")
     if not train:
         raise RuntimeError("no NER training data found; run scripts/fetch_layer1.sh first")
-    gazetteer = [a for (a,) in session.execute(select(EntityAlias.alias))]
+    gazetteer = [a for (a,) in session.execute(_clean_aliases(select(EntityAlias.alias)))]
 
     with recorded_run(session, "ner-train", model=kind, params={"train": len(train), "dev": len(dev)}) as run:
         rows = _score_rows(data, "Gazetteer rules", True, gazetteer_predictor(session))

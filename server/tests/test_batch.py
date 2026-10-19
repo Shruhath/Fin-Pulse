@@ -2,7 +2,7 @@ import pytest
 
 from finpulse.llm.client import LlmUnavailable
 from finpulse.pipeline import batch
-from finpulse.pipeline.batch import STAGES, Skip, run_pipeline
+from finpulse.pipeline.batch import DEFAULT_STAGES, STAGES, Skip, run_pipeline
 
 
 def _runners(monkeypatch, **overrides):
@@ -66,3 +66,12 @@ def test_unknown_stage_names_are_rejected_up_front(monkeypatch):
     _runners(monkeypatch)
     with pytest.raises(ValueError, match="nonsense"):
         run_pipeline(("parse", "nonsense"))
+
+
+def test_ner_runs_only_when_asked_for(monkeypatch):
+    calls = _runners(monkeypatch)
+    run_pipeline()
+    assert "ner" not in calls and calls == list(DEFAULT_STAGES)
+    calls.clear()
+    run_pipeline(("ner",))
+    assert calls == ["ner"]

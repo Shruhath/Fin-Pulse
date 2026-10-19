@@ -27,8 +27,22 @@ from finpulse.llm.client import LlmUnavailable, OllamaClient
 log = logging.getLogger(__name__)
 
 STAGES = (
-    "parse", "dedup", "link", "events", "sentiment", "embed", "events-llm", "summaries", "verify",
-)  # fmt: skip
+    "parse",
+    "dedup",
+    "link",
+    "ner",
+    "events",
+    "sentiment",
+    "embed",
+    "events-llm",
+    "summaries",
+    "verify",
+)
+
+
+# `ner` is left out of the default run: the models are trained on news headlines, and on legal prose they
+# find real companies but also roles such as "Financial Creditor". Run it by name once gold measures it.
+DEFAULT_STAGES = tuple(s for s in STAGES if s != "ner")
 
 
 @dataclass(slots=True)
@@ -199,7 +213,7 @@ _RUNNERS: dict[str, Callable[..., str]] = {
 
 
 def run_pipeline(
-    stages: tuple[str, ...] = STAGES,
+    stages: tuple[str, ...] = DEFAULT_STAGES,
     *,
     limit: int | None = None,
     device: str = "auto",

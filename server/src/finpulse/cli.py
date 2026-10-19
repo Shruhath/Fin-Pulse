@@ -321,9 +321,9 @@ def _embed(a: argparse.Namespace) -> int:
 
 
 def _pipeline(a: argparse.Namespace) -> int:
-    from finpulse.pipeline.batch import STAGES, run_pipeline
+    from finpulse.pipeline.batch import DEFAULT_STAGES, run_pipeline
 
-    stages = tuple(a.stages) if a.stages else STAGES
+    stages = tuple(a.stages) if a.stages else DEFAULT_STAGES
 
     def show(r) -> None:
         print(f"  [{r.status:^7}] {r.stage:<11} {r.seconds:6.1f}s  {r.note}", flush=True)
