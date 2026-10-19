@@ -130,6 +130,13 @@ def _dedup(a: argparse.Namespace) -> int:
     return 0
 
 
+def _worker(a: argparse.Namespace) -> int:
+    from finpulse.pipeline.worker import run_worker
+
+    run_worker(poll_seconds=a.poll, once=a.once)
+    return 0
+
+
 def _serve(a: argparse.Namespace) -> int:
     import uvicorn
 
@@ -178,6 +185,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     dd = add("dedup", _dedup, "cluster near-duplicate documents")
     dd.add_argument("--threshold", type=float, default=0.85)
+
+    wk = add("worker", _worker, "run the job queue worker")
+    wk.add_argument("--poll", type=float, default=2.0, help="seconds to wait when the queue is empty")
+    wk.add_argument("--once", action="store_true", help="drain the queue, then exit")
 
     sv = add("serve", _serve, "run the API")
     sv.add_argument("--host", default="127.0.0.1")
