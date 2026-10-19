@@ -25,8 +25,8 @@ train:         ## classical baselines, then the neural models
 	$(SERVER) uv run finpulse sentiment train --model tfidf && uv run finpulse ner train --model crf
 	$(SERVER) uv run finpulse sentiment train --model finbert && uv run finpulse ner train --model transformer
 
-eval:          ## score every stage against the gold passages
-	$(SERVER) uv run finpulse gold eval --llm
+eval:          ## summaries on ECTSum, then every stage against the gold passages
+	$(SERVER) uv run finpulse ectsum && uv run finpulse gold eval --llm
 
 api:
 	$(SERVER) uv run finpulse serve

@@ -281,6 +281,32 @@ def _openapi(a: argparse.Namespace) -> int:
     return 0
 
 
+def _ectsum(a: argparse.Namespace) -> int:
+    from finpulse.core.settings import get_settings as settings
+    from finpulse.eval.ectsum import run_ectsum_eval
+    from finpulse.llm.client import OllamaClient
+
+    model = settings().summary_model
+    client = OllamaClient()
+    if not client.has_model(model):
+        print(
+            f"{model} is not available at {client.base_url} (scripts/ollama-local.sh pull)", file=sys.stderr
+        )
+        return 1
+    judge = None
+    if not a.no_nli:
+        from finpulse.verify.nli import Nli
+
+        judge = Nli(device=a.device)
+    with session_scope() as s:
+        scores = run_ectsum_eval(s, client, model, judge, n=a.n)
+    client.unload(model)
+    for name, m in scores.items():
+        shown = {k: round(v, 3) for k, v in m.items()}
+        print(f"  {name:<8} {shown}")
+    return 0
+
+
 def _embed(a: argparse.Namespace) -> int:
     from finpulse.pipeline.batch import run_pipeline
 
@@ -425,6 +451,11 @@ def build_parser() -> argparse.ArgumentParser:
     oa = add("openapi", _openapi, "write or check the OpenAPI contract the web app is generated from")
     oa.add_argument("--out", default="openapi.json")
     oa.add_argument("--check", action="store_true", help="fail if the file is out of date")
+
+    ec = add("ectsum", _ectsum, "score the summariser on a sample of ECTSum transcripts (ROUGE, attribution)")
+    ec.add_argument("--n", type=int, default=60)
+    ec.add_argument("--no-nli", action="store_true")
+    ec.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
 
     em = add("embed", _embed, "embed sentences with bge-m3 for dense retrieval")
     em.add_argument("--limit", type=int)
