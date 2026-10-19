@@ -94,6 +94,12 @@ class Sentence(Base):
     __table_args__ = (
         UniqueConstraint("doc_id", "idx"),
         Index("ix_sentences_tsv", "tsv", postgresql_using="gin"),
+        Index(
+            "ix_sentences_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

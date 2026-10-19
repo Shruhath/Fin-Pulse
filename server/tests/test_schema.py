@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 
 import pytest
 from sqlalchemy import select, text
@@ -96,3 +97,14 @@ def test_entity_daily_aggregates_signed_scores(db):
     ).one()
     assert row.mentions == 2
     assert row.score_mean == pytest.approx(((0.8 - 0.1) + (0.1 - 0.7)) / 2)
+
+
+def test_models_and_migrations_agree(migrated_db):
+    """`alembic check` finds no difference between the ORM models and the migrated database."""
+    from alembic import command
+    from alembic.config import Config
+
+    server_dir = Path(__file__).resolve().parents[1]
+    cfg = Config(str(server_dir / "alembic.ini"))
+    cfg.set_main_option("script_location", str(server_dir / "alembic"))
+    command.check(cfg)

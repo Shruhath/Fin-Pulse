@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from finpulse.core.settings import get_settings
-from finpulse.db import models  # noqa: F401  (registers every table on the metadata)
+from finpulse.db import models, views  # noqa: F401  (register every table and view on the metadata)
 from finpulse.db.base import Base
 
 config = context.config
@@ -16,13 +16,24 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_object(obj, name, type_, reflected, compare_to):
+    """The entity_daily materialized view is created by raw SQL in a migration, not as a table."""
+    return not (type_ == "table" and obj.info.get("is_view"))
+
+
 def _url() -> str:
     # An explicit -x url=... or sqlalchemy.url wins, which is how tests migrate a scratch database.
     return context.get_x_argument(as_dictionary=True).get("url") or get_settings().database_url
 
 
 def run_migrations_offline() -> None:
-    context.configure(url=_url(), target_metadata=target_metadata, literal_binds=True, compare_type=True)
+    context.configure(
+        url=_url(),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        compare_type=True,
+        include_object=include_object,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -30,7 +41,12 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     engine = create_engine(_url(), poolclass=pool.NullPool)
     with engine.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            include_object=include_object,
+        )
         with context.begin_transaction():
             context.run_migrations()
 
