@@ -34,3 +34,7 @@ next-env.d.ts
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# annotation tasks and exports carry document text and annotator work: local only
+annotation/tasks.json
+annotation/*export*.json
