@@ -13,7 +13,8 @@ pytestmark = pytest.mark.db
 
 ORDER = (
     "In the matter of Raga Securities and Finance Private Limited. I hereby impose a penalty of "
-    "Rs. 4,00,000/- on the Noticee viz. Raga Securities and Finance Private Limited under section 15HB of SEBI Act."
+    "Rs. 4,00,000/- on the Noticee viz. Raga Securities and Finance Private Limited "
+    "under section 15HB of SEBI Act."
 )
 
 
