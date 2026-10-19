@@ -24,9 +24,9 @@ class Settings(BaseSettings):
     corpus_dir: Path = REPO_DIR / "data-set" / "layer2"
     benchmark_dir: Path = REPO_DIR / "data-set" / "layer1"
 
-    ollama_url: str = "http://127.0.0.1:11434"
+    ollama_url: str = "http://127.0.0.1:11435"
     event_model: str = "qwen2.5:7b-instruct"
-    summary_model: str = "llama3.1:8b-instruct"
+    summary_model: str = "llama3.1:8b-instruct-q4_K_M"
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
