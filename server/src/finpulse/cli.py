@@ -79,6 +79,18 @@ def _link(a: argparse.Namespace) -> int:
     return 0
 
 
+def _events(a: argparse.Namespace) -> int:
+    from finpulse.pipeline.events import extract_pending
+
+    with session_scope() as s:
+        st = extract_pending(s, limit=a.limit)
+    print(
+        f"documents {st.documents}, events {st.events} ({st.without_entity} without an entity, "
+        f"{st.invalid} failing their schema)"
+    )
+    return 0
+
+
 def _dedup(a: argparse.Namespace) -> int:
     from finpulse.pipeline.dedup import dedup_documents
 
@@ -126,6 +138,9 @@ def build_parser() -> argparse.ArgumentParser:
     ln = add("link", _link, "find and link entity mentions")
     ln.add_argument("--limit", type=int)
     ln.add_argument("--relink", action="store_true", help="redo documents that already have mentions")
+
+    ev = add("events", _events, "extract events with the rule baseline")
+    ev.add_argument("--limit", type=int)
 
     dd = add("dedup", _dedup, "cluster near-duplicate documents")
     dd.add_argument("--threshold", type=float, default=0.85)
