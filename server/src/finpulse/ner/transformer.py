@@ -29,6 +29,7 @@ BASE_MODEL = "microsoft/deberta-v3-base"
 MODEL_NAME = "deberta-ner"
 IGNORE = -100
 MAX_LENGTH = 128
+AUTOCAST = True  # bfloat16 activations over fp32 weights: the memory an 8 GB GPU needs for DeBERTa-v3
 
 
 class TransformerNer:
@@ -54,6 +55,7 @@ class TransformerNer:
         )
         model = AutoModelForTokenClassification.from_pretrained(
             name,
+            dtype=torch.float32,  # the checkpoint ships in fp16, which cannot be trained with AdamW
             num_labels=len(TAGS),
             id2label=dict(enumerate(TAGS)),
             label2id={t: i for i, t in enumerate(TAGS)},
@@ -156,7 +158,7 @@ class TransformerNer:
         *,
         epochs: int = 4,
         lr: float = 5e-5,
-        batch_size: int = 32,
+        batch_size: int = 16,
         seed: int = 13,
     ) -> dict[str, Any]:
         t0 = time.monotonic()
@@ -181,7 +183,9 @@ class TransformerNer:
                     for pos, w in enumerate(heads[b]):
                         if w is not None:
                             labels[b, pos] = TAGS.index(sentence.tags[w])
-                with torch.autocast(self.device, dtype=torch.bfloat16, enabled=self.device == "cuda"):
+                with torch.autocast(
+                    self.device, dtype=torch.bfloat16, enabled=AUTOCAST and self.device == "cuda"
+                ):
                     out = self.model(
                         **{k: v.to(self.device) for k, v in enc.items()}, labels=labels.to(self.device)
                     )

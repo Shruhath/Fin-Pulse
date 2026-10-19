@@ -84,7 +84,9 @@ class FinBert:
     ) -> FinBert:
         """A trainable model from a pre-trained checkpoint, with the head ordered as `LABELS`."""
         tok = AutoTokenizer.from_pretrained(name_or_path)
-        model = AutoModelForSequenceClassification.from_pretrained(name_or_path, num_labels=len(LABELS))
+        model = AutoModelForSequenceClassification.from_pretrained(
+            name_or_path, num_labels=len(LABELS), dtype=torch.float32
+        )
         if entity_marked:
             tok.add_special_tokens({"additional_special_tokens": [MARK_OPEN, MARK_CLOSE]})
             model.resize_token_embeddings(len(tok))
