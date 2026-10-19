@@ -127,6 +127,33 @@ def _sentiment(a: argparse.Namespace) -> int:
     return 0
 
 
+def _ner(a: argparse.Namespace) -> int:
+    if a.action == "train":
+        from finpulse.eval.ner import train_and_evaluate
+
+        with session_scope() as s:
+            run = train_and_evaluate(s, kind=a.model, epochs=a.epochs)
+        print(f"trained {run.version}  ->  {run.model_path}\nresults -> {run.result_path}")
+        for row in run.rows:
+            m = row["metrics"]
+            print(
+                f"  {row['model'][:38]:<38} {row['dataset']:<16} n={int(m['n'])}  "
+                f"P {m['spanPrecision']:.3f}  "
+                f"R {m['spanRecall']:.3f}  F1 {m['spanF1']:.3f}"
+            )
+        return 0
+    from finpulse.pipeline.ner import load_ner_model, ner_pending
+
+    model = load_ner_model(device=a.device)
+    if model is None:
+        print("no trained NER model found: run `finpulse ner train` first", file=sys.stderr)
+        return 1
+    with session_scope() as s:
+        st = ner_pending(s, model, limit=a.limit)
+    print(f"{st.mentions} new mentions in {st.sentences} sentences ({st.linked} linked)")
+    return 0
+
+
 def _dedup(a: argparse.Namespace) -> int:
     from finpulse.pipeline.dedup import dedup_documents
 
@@ -345,6 +372,13 @@ def build_parser() -> argparse.ArgumentParser:
     se.add_argument("--epochs", type=int, default=4, help="FinBERT epochs")
     se.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
 
+    nr = add("ner", _ner, "train a NER model (CRF or transformer) or run it to find unlisted company names")
+    nr.add_argument("action", choices=["train", "run"])
+    nr.add_argument("--model", choices=["crf", "transformer"], default="crf")
+    nr.add_argument("--epochs", type=int, default=4)
+    nr.add_argument("--limit", type=int)
+    nr.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+
     dd = add("dedup", _dedup, "cluster near-duplicate documents")
     dd.add_argument("--threshold", type=float, default=0.85)
 
@@ -356,7 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
     pl.add_argument(
         "--stages",
         nargs="*",
-        help="a subset of: parse dedup link events sentiment embed events-llm summaries verify",
+        help="a subset of: parse dedup link ner events sentiment embed events-llm summaries verify",
     )
     pl.add_argument("--limit", type=int)
     pl.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])

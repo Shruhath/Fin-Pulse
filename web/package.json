@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:api": "openapi-typescript ../server/openapi.json -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

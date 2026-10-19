@@ -58,4 +58,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      - name: The generated API types are current
+        run: bun run gen:api && git diff --exit-code src/lib/api/schema.d.ts
       - run: bun run build

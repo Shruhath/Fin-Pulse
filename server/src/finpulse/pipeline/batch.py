@@ -82,6 +82,17 @@ def _link(limit: int | None, **_: object) -> str:
     return f"{st.documents} documents, {st.mentions} mentions, {st.created_entities} new entities"
 
 
+def _ner(limit: int | None, device: str, **_: object) -> str:
+    from .ner import load_ner_model, ner_pending
+
+    model = load_ner_model(device=device)
+    if model is None:
+        raise Skip("no NER model has been trained (finpulse ner train)")
+    with session_scope() as s:
+        st = ner_pending(s, model, limit=limit)
+    return f"{st.mentions} new mentions in {st.sentences} sentences ({st.linked} linked)"
+
+
 def _events(limit: int | None, **_: object) -> str:
     from .events import extract_pending
 
@@ -182,7 +193,7 @@ def _verify(limit: int | None, device: str, **_: object) -> str:
 
 
 _RUNNERS: dict[str, Callable[..., str]] = {
-    "parse": _parse, "dedup": _dedup, "link": _link, "events": _events, "sentiment": _sentiment,
+    "parse": _parse, "dedup": _dedup, "link": _link, "ner": _ner, "events": _events, "sentiment": _sentiment,
     "embed": _embed, "events-llm": _events_llm, "summaries": _summaries, "verify": _verify,
 }  # fmt: skip
 
