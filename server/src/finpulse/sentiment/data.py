@@ -65,6 +65,9 @@ def _relocate(text: str, start: int, end: int, value: str) -> tuple[int, int] | 
 
 def load_finentity(root: Path) -> Loaded:
     out = Loaded()
+    if not (root / FINENTITY).is_file():
+        out.dropped["file missing"] += 1
+        return out
     for item in json.loads((root / FINENTITY).read_text(encoding="utf-8")):
         text = item["content"]
         for ann in item["annotations"]:
@@ -84,6 +87,9 @@ def parse_decisions(raw: str) -> dict[str, str]:
 
 def load_sentfin(root: Path) -> Loaded:
     out = Loaded()
+    if not (root / SENTFIN).is_file():
+        out.dropped["file missing"] += 1
+        return out
     with (root / SENTFIN).open(encoding="utf-8-sig", newline="") as fh:
         for row in csv.DictReader(fh):
             title = row["Title"].strip()

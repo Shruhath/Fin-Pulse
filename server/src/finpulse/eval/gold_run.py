@@ -18,7 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from finpulse.core.settings import REPO_DIR, get_settings
-from finpulse.db.models import Annotation, EvalResult
+from finpulse.db.models import Annotation, EvalResult, Run
 from finpulse.llm.client import Llm
 from finpulse.pipeline.runs import recorded_run
 from finpulse.pipeline.verify import Judge
@@ -89,8 +89,11 @@ def run_gold_eval(
     with recorded_run(session, "eval-gold", params={"gold_annotations": counts}) as run:
         if "event" in counts:
             add("events", "Rules over operative sentences", True, evaluate_events(session, "rules"))
-            llm_metrics = evaluate_events(session, "llm")
-            if llm_metrics["systemEvents"] or llm_metrics["goldEvents"]:
+            llm_ran = session.scalar(
+                select(Run.id).where(Run.stage == "events-llm", Run.status == "done").limit(1)
+            )
+            if llm_ran is not None:  # a zero-recall row for an extractor that never ran would mislead
+                llm_metrics = evaluate_events(session, "llm")
                 add(
                     "events",
                     f"{llm_model or get_settings().event_model}, schema-constrained",
