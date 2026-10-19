@@ -39,6 +39,8 @@ jobs:
           cache-dependency-glob: server/uv.lock
       - name: Install dependencies
         run: uv sync --extra ml --extra neural --extra export --frozen
+      - name: The optional extras import (their tests must run, not skip)
+        run: uv run python -c "import torch, transformers, pyarrow, sklearn_crfsuite, sentencepiece"
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
       - name: The OpenAPI contract is current
