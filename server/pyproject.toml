@@ -1,0 +1,69 @@
+[project]
+name = "finpulse"
+version = "0.1.0"
+description = "Entity-level sentiment, event extraction and source-grounded summaries for Indian financial disclosures"
+requires-python = ">=3.11,<3.13"
+readme = "README.md"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.9",
+  "sqlalchemy>=2.0.30",
+  "psycopg[binary]>=3.2",
+  "alembic>=1.13",
+  "pgvector>=0.3",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "httpx>=0.27",
+  "tenacity>=8.3",
+  "pymupdf>=1.24",
+  "trafilatura>=1.12",
+  "ftfy>=6.2",
+  "rapidfuzz>=3.9",
+  "datasketch>=1.6",
+]
+
+[project.optional-dependencies]
+# Neural and classical ML stages. Kept out of the base install so CI and the API stay light.
+ml = [
+  "scikit-learn>=1.5",
+  "joblib>=1.4",
+  "numpy>=1.26",
+]
+
+[project.scripts]
+finpulse = "finpulse.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/finpulse"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "db: needs the PostgreSQL service from infra/docker-compose.yml",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+  "RUF001",  # the corpus is full of ₹ and typographic dashes, on purpose
+  "RUF002",
+  "RUF003",
+]
