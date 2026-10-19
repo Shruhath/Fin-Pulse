@@ -8,15 +8,15 @@ from functools import lru_cache
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends
-from sqlalchemy import func, select, text
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import desc, func, select, text
 from sqlalchemy.orm import Session
 
 from finpulse.api import queries as q
 from finpulse.api import schemas as s
 from finpulse.api.deps import get_db
 from finpulse.core.settings import get_settings
-from finpulse.db.models import Job
+from finpulse.db.models import Job, Run
 from finpulse.parse import tesseract_version
 
 router = APIRouter()
@@ -70,6 +70,34 @@ def health(db: Db) -> s.Health:
         sentiment_model=q.active_model(db) if database else None,
         queued_jobs=queued or 0,
     )
+
+
+@router.get("/runs", response_model=list[s.RunRecord])
+def runs(
+    db: Db,
+    stage: Annotated[str | None, Query(max_length=24)] = None,
+    status: Annotated[str | None, Query(pattern="^(running|done|failed)$")] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> list[s.RunRecord]:
+    stmt = select(Run).order_by(desc(Run.started_at), desc(Run.id)).limit(limit)
+    if stage:
+        stmt = stmt.where(Run.stage == stage)
+    if status:
+        stmt = stmt.where(Run.status == status)
+    return [
+        s.RunRecord(
+            id=str(r.id),
+            stage=r.stage,
+            model=r.model,
+            prompt_version=r.prompt_version,
+            params=r.params,
+            status=r.status,
+            started_at=r.started_at,
+            latency_ms=r.latency_ms,
+            error=r.error,
+        )
+        for r in db.scalars(stmt)
+    ]
 
 
 @router.get("/pipeline/config", response_model=s.PipelineConfig)

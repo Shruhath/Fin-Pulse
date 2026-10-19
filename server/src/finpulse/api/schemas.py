@@ -288,6 +288,20 @@ class SearchResults(Api):
     filings: list[SearchHit]
 
 
+class RunRecord(Api):
+    """One execution of a pipeline stage: the recorded evidence behind every stored prediction."""
+
+    id: str
+    stage: str
+    model: str | None
+    prompt_version: str | None
+    params: dict[str, object]
+    status: Literal["running", "done", "failed"]
+    started_at: datetime
+    latency_ms: int | None
+    error: str | None
+
+
 class Health(Api):
     status: Literal["ok", "degraded"]
     database: bool

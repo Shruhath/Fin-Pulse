@@ -214,6 +214,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runs */
+        get: operations["runs_api_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/search": {
         parameters: {
             query?: never;
@@ -782,6 +799,38 @@ export interface components {
             /** N */
             n: number;
         };
+        /**
+         * RunRecord
+         * @description One execution of a pipeline stage: the recorded evidence behind every stored prediction.
+         */
+        RunRecord: {
+            /** Error */
+            error: string | null;
+            /** Id */
+            id: string;
+            /** Latencyms */
+            latencyMs: number | null;
+            /** Model */
+            model: string | null;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Promptversion */
+            promptVersion: string | null;
+            /** Stage */
+            stage: string;
+            /**
+             * Startedat
+             * Format: date-time
+             */
+            startedAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "done" | "failed";
+        };
         /** SearchCompany */
         SearchCompany: {
             /** Id */
@@ -1262,6 +1311,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PipelineConfig"];
+                };
+            };
+        };
+    };
+    runs_api_runs_get: {
+        parameters: {
+            query?: {
+                stage?: string | null;
+                status?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunRecord"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

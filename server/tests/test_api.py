@@ -13,6 +13,7 @@ from finpulse.db.models import (
     Event,
     Mention,
     MentionSentiment,
+    Run,
     Sentence,
     Summary,
 )
@@ -380,3 +381,25 @@ def test_search_finds_companies_by_fuzzy_name_and_documents_by_text(client, db):
     assert client.get("/api/search?q=penalties").json()["filings"]  # stemming: penalties matches penalty
     assert client.get("/api/search?q=zzzzqqq").json() == {"query": "zzzzqqq", "companies": [], "filings": []}
     assert client.get("/api/search?q=a").status_code == 422
+
+
+def test_runs_list_the_recorded_stage_executions_newest_first(client, db):
+    assert client.get("/api/runs").json() == []
+    db.add(Run(stage="parse", model="pymupdf", params={"documents": 3}, status="done", latency_ms=1200))
+    db.add(
+        Run(
+            stage="events-llm",
+            model="qwen2.5:7b-instruct",
+            prompt_version="events-v1",
+            status="failed",
+            error="boom",
+        )
+    )
+    db.flush()
+    body = client.get("/api/runs").json()
+    assert [r["stage"] for r in body] == ["events-llm", "parse"]
+    assert body[0]["promptVersion"] == "events-v1" and body[0]["error"] == "boom"
+    assert body[1]["params"] == {"documents": 3} and body[1]["latencyMs"] == 1200
+    assert [r["stage"] for r in client.get("/api/runs?stage=parse").json()] == ["parse"]
+    assert [r["stage"] for r in client.get("/api/runs?status=failed").json()] == ["events-llm"]
+    assert client.get("/api/runs?status=odd").status_code == 422
