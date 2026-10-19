@@ -53,12 +53,30 @@ def smart_title(name: str) -> str:
     return " ".join(out)
 
 
+# SEntFiN also labels groups of stocks and institutions ("hotel companies", "Supreme Court", "Stock
+# exchanges"). Only names that read like a company are kept, or the matcher floods with false mentions.
+_COMPANY_LIKE = re.compile(
+    r"(?:\b(?:ltd|limited|co|company|corporation|corp|inc|industries|enterprises|holdings|finance)\b\.?"
+    r"(?:\s*-\s*old)?\s*$)|\bbank\b",
+    re.IGNORECASE,
+)
+
+
+def looks_like_company(name: str) -> bool:
+    return bool(_COMPANY_LIKE.search(name.strip()))
+
+
+def clean_sentfin_name(name: str) -> str:
+    return re.sub(r"\s*-\s*old\s*$", "", name.strip(), flags=re.IGNORECASE)
+
+
 @dataclass(slots=True)
 class SeedStats:
     entities: int = 0
     aliases: int = 0
     from_nse: int = 0
     from_sentfin: int = 0
+    skipped: int = 0  # SEntFiN rows that are not companies
 
 
 def _unique_slug(session: Session, base: str, taken: set[str]) -> str:
@@ -122,7 +140,10 @@ def seed_gazetteer(session: Session, benchmark_dir: Path) -> SeedStats:
                 continue
             ent = by_symbol.get(symbol)
             if ent is None:
-                name = aliases[0]
+                if not looks_like_company(aliases[0]):
+                    stats.skipped += 1
+                    continue
+                name = clean_sentfin_name(aliases[0])
                 ent = Entity(
                     slug=_unique_slug(session, slugify(name), taken),
                     canonical_name=name,

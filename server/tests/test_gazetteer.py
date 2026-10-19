@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import func, select
 
 from finpulse.db.models import Entity, EntityAlias
-from finpulse.entities.gazetteer import seed_gazetteer, smart_title
+from finpulse.entities.gazetteer import looks_like_company, seed_gazetteer, smart_title
 
 pytestmark = pytest.mark.db
 
@@ -34,13 +34,15 @@ def _benchmarks(root):
         ",Symbol,Entity\n"
         '0,YESBANK,"Yes Bank Ltd, Yes Bank, YESBANK"\n'
         '1,SINTEX,"Sintex Industries Ltd., Sintex, SINTEX"\n'
+        '2,REGORG,"Supreme Court, SC"\n'
+        '3,HOTEL,"hotel companies, hotels"\n'
     )
 
 
 def test_seed_merges_nse_and_sentfin_and_is_repeatable(db, tmp_path):
     _benchmarks(tmp_path)
     first = seed_gazetteer(db, tmp_path)
-    assert (first.from_nse, first.from_sentfin) == (2, 1)
+    assert (first.from_nse, first.from_sentfin, first.skipped) == (2, 1, 2)
 
     yes = db.scalar(select(Entity).where(Entity.nse_symbol == "YESBANK"))
     assert yes.canonical_name == "Yes Bank Limited" and yes.kind == "bank" and yes.isin == "INE528G01035"
@@ -61,3 +63,20 @@ def test_seed_merges_nse_and_sentfin_and_is_repeatable(db, tmp_path):
 def test_missing_files_are_reported_not_fatal(db, tmp_path):
     stats = seed_gazetteer(db, tmp_path)
     assert stats.entities == 0
+
+
+@pytest.mark.parametrize(
+    ("name", "ok"),
+    [
+        ("Jet Airways Ltd.", True),
+        ("Sundaram Clayton Ltd.- OLD", True),
+        ("State Bank of Mysore", True),
+        ("Thiru Arooran Sugars Industries", True),
+        ("Supreme Court", False),
+        ("Stock exchanges", False),
+        ("hotel companies", False),
+        ("MNC stocks", False),
+    ],
+)
+def test_only_company_like_sentfin_names_are_kept(name, ok):
+    assert looks_like_company(name) is ok

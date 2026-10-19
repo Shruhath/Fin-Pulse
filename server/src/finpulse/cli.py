@@ -36,7 +36,10 @@ def _gazetteer_seed(_: argparse.Namespace) -> int:
 
     with session_scope() as s:
         st = seed_gazetteer(s, get_settings().benchmark_dir)
-    print(f"entities +{st.entities} (nse {st.from_nse}, sentfin {st.from_sentfin}), aliases +{st.aliases}")
+    print(
+        f"entities +{st.entities} (nse {st.from_nse}, sentfin {st.from_sentfin}, "
+        f"{st.skipped} sentfin rows skipped as non-companies), aliases +{st.aliases}"
+    )
     return 0
 
 
