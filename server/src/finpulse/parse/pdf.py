@@ -7,7 +7,9 @@ so that page is rendered and sent through Tesseract; `ocr_used` records that it 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import pairwise
 from pathlib import Path
+from statistics import median
 
 import pymupdf
 
@@ -40,9 +42,37 @@ class ParsedDocument:
         return [p.text for p in self.pages]
 
 
+_PARAGRAPH_GAP = 1.4  # a line pitch this many times the page's usual pitch starts a new paragraph
+
+
 def _text_layer(page: pymupdf.Page) -> str:
-    blocks = page.get_text("blocks", sort=True)
-    return "\n\n".join(b[4].strip() for b in blocks if b[6] == 0 and b[4].strip())
+    """The page's text with blank lines between paragraphs and single newlines between wrapped lines.
+
+    Many filings come out of PyMuPDF with one text block per line, so blocks are not paragraphs.
+    Paragraphs are rebuilt from the vertical distance between consecutive lines instead.
+    """
+    lines: list[tuple[float, str]] = []  # (top of line, text)
+    for block in page.get_text("dict", sort=True)["blocks"]:
+        if block["type"] != 0:
+            continue
+        for line in block["lines"]:
+            text = "".join(span["text"] for span in line["spans"]).strip()
+            if text:
+                lines.append((line["bbox"][1], text))
+    if not lines:
+        return ""
+    pitches = [b[0] - a[0] for a, b in pairwise(lines) if 2 < b[0] - a[0] < 60]
+    typical = median(pitches) if pitches else 0.0
+    paragraphs: list[list[str]] = [[lines[0][1]]]
+    for (prev_top, _), (top, text) in pairwise(lines):
+        pitch = top - prev_top
+        if typical and pitch > typical * _PARAGRAPH_GAP:
+            paragraphs.append([text])
+        elif abs(pitch) <= 2:  # same baseline: a table cell or a split run, not a new line
+            paragraphs[-1][-1] += " " + text
+        else:
+            paragraphs[-1].append(text)
+    return "\n\n".join("\n".join(p) for p in paragraphs)
 
 
 def parse_pdf(

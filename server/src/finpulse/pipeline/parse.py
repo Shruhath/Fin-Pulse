@@ -84,10 +84,13 @@ def parse_pending(
     workers: int = 4,
     limit: int | None = None,
     ocr: bool = True,
+    redo: bool = False,
     progress: Callable[[int, int, Document], None] | None = None,
 ) -> ParseStats:
-    """Parse every document still in status 'ingested'."""
-    stmt = select(Document).where(Document.status == "ingested").order_by(Document.id)
+    """Parse every document still in status 'ingested', or every stored document with `redo`."""
+    stmt = select(Document).order_by(Document.id)
+    if not redo:
+        stmt = stmt.where(Document.status == "ingested")
     if limit:
         stmt = stmt.limit(limit)
     docs = list(session.scalars(stmt))

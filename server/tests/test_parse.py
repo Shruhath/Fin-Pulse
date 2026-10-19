@@ -84,3 +84,29 @@ def test_dispatch_by_extension(tmp_path):
     assert parse_file(txt).pages[0].text == "Plain text order."
     with pytest.raises(ValueError):
         parse_file(tmp_path / "order.docx")
+
+
+def test_paragraphs_are_rebuilt_from_line_spacing(tmp_path):
+    pdf = tmp_path / "paras.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page()
+    y = 72.0
+    # one block per line, as many regulatory PDFs are produced
+    for para in (
+        ["The Board met on Monday and", "approved the proposal after a", "lengthy discussion."],
+        ["The second paragraph starts", "here and also wraps."],
+    ):
+        for line in para:
+            page.insert_text((72, y), line, fontsize=11)
+            y += 14
+        y += 12
+    doc.save(pdf)
+    doc.close()
+    text = parse_pdf(pdf, ocr=False).pages[0].text
+    first, second = text.split("\n\n")
+    assert first.split("\n") == [
+        "The Board met on Monday and",
+        "approved the proposal after a",
+        "lengthy discussion.",
+    ]
+    assert second.split("\n") == ["The second paragraph starts", "here and also wraps."]
