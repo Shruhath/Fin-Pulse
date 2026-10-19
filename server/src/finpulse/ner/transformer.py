@@ -190,7 +190,7 @@ class TransformerNer:
                 nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 optimiser.step()
                 schedule.step()
-                total += float(out.loss) * len(batch)
+                total += float(out.loss.detach()) * len(batch)
             f1 = self.score(dev)["spanF1"]
             history.append({"epoch": float(epoch), "train_loss": total / len(train), "dev_span_f1": f1})
             if f1 > best_f1:
