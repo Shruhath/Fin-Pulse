@@ -23,7 +23,8 @@ docker compose -f infra/docker-compose.yml up -d --wait db
 scripts/ollama-local.sh start
 (cd server && uv run alembic upgrade head)
 
-trap 'kill $(jobs -p) 2>/dev/null || true' EXIT INT TERM
+# stop the API, the worker and the web app together, grandchildren included: they share this process group
+trap 'trap - EXIT INT TERM; kill 0' EXIT INT TERM
 (cd server && exec uv run finpulse serve) >data/logs/api.log 2>&1 &
 (cd server && exec uv run finpulse worker) >data/logs/worker.log 2>&1 &
 
