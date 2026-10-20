@@ -313,6 +313,18 @@ function AnswerView({ answer }: { answer: AskAnswer }) {
           </ol>
         </>
       )}
+      {answer.abstained && answer.claims.length > 0 && (
+        <details className="border border-line">
+          <summary className="cursor-pointer px-3 py-1.5 font-mono text-2xs text-ink-2 hover:bg-surface-2">
+            the draft, which no filing confirmed ({answer.claims.length})
+          </summary>
+          <ol className="divide-y divide-line">
+            {answer.claims.map((c) => (
+              <ClaimRow key={c.id} claim={c} />
+            ))}
+          </ol>
+        </details>
+      )}
       <p className="font-mono text-2xs leading-relaxed text-ink-3">
         {answer.passages.length > 0 && (
           <>
