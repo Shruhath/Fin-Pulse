@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from collections.abc import Hashable, Sequence
+from collections.abc import Collection, Hashable, Sequence
 
 _TOKEN = re.compile(r"[a-z0-9]+(?:\.[0-9]+)?")
 _STOP = frozenset(
@@ -29,11 +29,15 @@ class BM25:
         n = len(self.docs)
         self.idf = {t: math.log(1 + (n - f + 0.5) / (f + 0.5)) for t, f in df.items()}
 
-    def scores(self, query: str) -> list[float]:
+    def scores(self, query: str, allowed: Collection[int] | None = None) -> list[float]:
+        """A score per document; documents outside `allowed` (when given) score zero."""
         q = tokens(query)
         out = []
-        for counts, length in zip(self.docs, self.lengths, strict=True):
+        for i, (counts, length) in enumerate(zip(self.docs, self.lengths, strict=True)):
             s = 0.0
+            if allowed is not None and i not in allowed:
+                out.append(s)
+                continue
             for t in q:
                 f = counts.get(t, 0)
                 if f:
@@ -42,9 +46,9 @@ class BM25:
             out.append(s)
         return out
 
-    def rank(self, query: str, k: int = 20) -> list[int]:
+    def rank(self, query: str, k: int = 20, allowed: Collection[int] | None = None) -> list[int]:
         """Indexes of the top k documents with a non-zero score, best first (ties keep document order)."""
-        scores = self.scores(query)
+        scores = self.scores(query, allowed)
         order = sorted(range(len(scores)), key=lambda i: (-scores[i], i))
         return [i for i in order[:k] if scores[i] > 0]
 

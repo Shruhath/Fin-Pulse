@@ -184,7 +184,7 @@ class CompanyDetail(Api):
 
 
 class MetricRow(Api):
-    task: Literal["ner", "sentiment", "events", "summaries"]
+    task: Literal["ner", "sentiment", "events", "summaries", "qa"]
     model: str
     baseline: bool
     dataset: str
@@ -286,6 +286,54 @@ class SearchResults(Api):
     query: str
     companies: list[SearchCompany]
     filings: list[SearchHit]
+
+
+AskStageKey = Literal["retrieve", "answer", "verify"]
+
+
+class AskStage(Api):
+    key: AskStageKey
+    status: Literal["pending", "running", "done", "failed", "skipped"]
+    ms: int | None
+    note: str | None
+
+
+class AskRequest(Api):
+    question: str
+
+
+class AskAccepted(Api):
+    job_id: str
+
+
+class AskPassage(Evidence):
+    """A retrieved sentence: where the claims' evidence comes from, whether or not a claim cites it."""
+
+    rank: int
+    published_at: date | None
+    cited: bool
+
+
+class AskAnswer(Api):
+    question: str
+    abstained: bool
+    reason: str | None
+    entities: list[SearchCompany]
+    sources: list[SourceKind]
+    claims: list[Claim]
+    passages: list[AskPassage]
+    model: str | None
+    prompt_version: str
+    seconds: float
+    retrieval: str
+
+
+class AskJob(Api):
+    id: str
+    status: Literal["queued", "running", "done", "failed"]
+    stages: list[AskStage]
+    error: str | None = None
+    answer: AskAnswer | None = None
 
 
 class RunRecord(Api):

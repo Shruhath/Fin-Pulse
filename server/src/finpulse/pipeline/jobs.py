@@ -10,21 +10,25 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from finpulse.db.models import Job
 
 STAGE_KEYS = ("ingest", "parse", "entities", "sentiment", "events", "summary", "verify")
+STAGES_BY_KIND = {"analyze": STAGE_KEYS, "ask": ("retrieve", "answer", "verify")}
 STALE_AFTER = timedelta(minutes=20)
 
 
-def new_stages() -> list[dict[str, Any]]:
-    return [{"key": k, "status": "pending", "ms": None, "note": None} for k in STAGE_KEYS]
+def new_stages(kind: str = "analyze") -> list[dict[str, Any]]:
+    return [
+        {"key": k, "status": "pending", "ms": None, "note": None}
+        for k in STAGES_BY_KIND.get(kind, STAGE_KEYS)
+    ]
 
 
 def enqueue(session: Session, kind: str, payload: dict[str, Any], *, document_id: int | None = None) -> Job:
-    job = Job(kind=kind, payload=payload, stages=new_stages(), document_id=document_id)
+    job = Job(kind=kind, payload=payload, stages=new_stages(kind), document_id=document_id)
     session.add(job)
     session.flush()
     return job
@@ -64,7 +68,7 @@ def finish(session: Session, job: Job, *, error: str | None = None) -> None:
         job.status = "done"
     elif job.attempts < job.max_attempts:
         job.status = "queued"
-        job.stages = new_stages()
+        job.stages = new_stages(job.kind)
         job.error = error
         session.commit()
         return
@@ -82,13 +86,11 @@ def finish(session: Session, job: Job, *, error: str | None = None) -> None:
 def requeue_stale(session: Session) -> int:
     """Jobs a crashed worker left 'running' go back to the queue."""
     cutoff = datetime.now(UTC) - STALE_AFTER
-    result = session.execute(
-        update(Job)
-        .where(Job.status == "running", Job.started_at < cutoff)
-        .values(status="queued", stages=new_stages())
-    )
+    stale = list(session.scalars(select(Job).where(Job.status == "running", Job.started_at < cutoff)))
+    for job in stale:
+        job.status, job.stages = "queued", new_stages(job.kind)
     session.commit()
-    return result.rowcount or 0
+    return len(stale)
 
 
 def get_job(session: Session, job_id: str) -> Job | None:

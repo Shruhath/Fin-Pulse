@@ -8,6 +8,7 @@ import time
 from finpulse.db.session import get_sessionmaker
 
 from .analyze import run_analysis
+from .ask import run_ask
 from .jobs import claim_next, finish, requeue_stale
 
 log = logging.getLogger(__name__)
@@ -24,6 +25,8 @@ def process_one() -> bool:
         try:
             if job.kind == "analyze":
                 run_analysis(session, job)
+            elif job.kind == "ask":
+                run_ask(session, job)
             else:
                 raise ValueError(f"unknown job kind {job.kind!r}")
         except Exception as exc:

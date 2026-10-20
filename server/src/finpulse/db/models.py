@@ -350,7 +350,9 @@ class Annotation(Base):
 
 class EvalResult(Base):
     __tablename__ = "eval_results"
-    __table_args__ = (CheckConstraint("stage IN ('ner', 'sentiment', 'events', 'summaries')", name="stage"),)
+    __table_args__ = (
+        CheckConstraint("stage IN ('ner', 'sentiment', 'events', 'summaries', 'qa')", name="stage"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     stage: Mapped[str] = mapped_column(String(12), nullable=False)
