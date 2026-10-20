@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { useWM } from "./wm";
 
 const KEYS: [string, string][] = [
-  ["1 … 7", "Switch workspace"],
+  ["1 … 8", "Switch workspace"],
   ["h  k", "Focus previous window"],
   ["l  j", "Focus next window"],
   ["f", "Maximise or restore the focused window"],

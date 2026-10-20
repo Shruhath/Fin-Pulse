@@ -62,6 +62,19 @@ def test_matcher_takes_a_following_legal_suffix_into_the_span():
     assert f.surface == "Yes Bank Limited"
 
 
+def test_a_bare_ticker_followed_by_more_capitalised_words_is_part_of_a_longer_name():
+    m = AliasMatcher()
+    m.add("ACC", 1)
+
+    def surfaces(text):
+        return [x.surface for x in m.find(text)]
+
+    assert surfaces("REL held shares in ACC Energy Storage Pvt. Ltd. until 2025.") == []
+    assert surfaces("The order names ACC Limited and others.") == ["ACC Limited"]
+    assert surfaces("The shares of ACC. The company replied.") == ["ACC"]
+    assert surfaces("Shares of ACC rose on Monday.") == ["ACC"]
+
+
 def test_matcher_prefers_the_longest_alias():
     (f,) = _matcher().find("Tata Motors Ltd announced results.")
     assert f.entity_ids == (2,)
@@ -138,6 +151,15 @@ def test_fuzzy_does_not_merge_a_name_with_an_extended_one():
          [("subject", "person", "Simran Sunil Raheja")]),
         ("Order in respect of Bubna Stock Broking Services Ltd., (now known as Sunbright Stock Broking Ltd.)",
          [("subject", "company", "Bubna Stock Broking Services Ltd")]),
+        ("Adjudication Order in the matter of suspected insider trading in the scrip of Wipro Ltd",
+         [("matter", "company", "Wipro Ltd")]),
+        ("Order in respect of Himadri Acharya Bhaduri and Atul Sharma in the matter of in the matter of "
+         "M/s. Action Financial Services (India) Ltd.",
+         [("subject", "person", "Himadri Acharya Bhaduri"), ("subject", "person", "Atul Sharma"),
+          ("matter", "company", "Action Financial Services (India) Ltd")]),
+        ("Order in respect of Prakash Nahata and Co", [("subject", "company", "Prakash Nahata and Co")]),
+        ("Order in the matter of Dipchand Development Co. Ltd.in the matter of SCORES Authentication",
+         [("subject", "company", "Dipchand Development Co. Ltd")]),
     ],
 )  # fmt: skip
 def test_title_subjects(title, expected):

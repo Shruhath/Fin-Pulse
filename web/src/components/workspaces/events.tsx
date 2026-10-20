@@ -49,7 +49,7 @@ export function EventsWorkspace({ events, windowDays, windowLabel }: { events: E
         {
           id: "event-inspect",
           cls: "inspect",
-          title: selected ? `${selected.type.toLowerCase()} · ${selected.entityName.toLowerCase()}` : "event",
+          title: selected ? `${selected.type.toLowerCase()} · ${(selected.entityName ?? "unresolved party").toLowerCase()}` : "event",
           weight: 1.3,
           node: selected ? <EventCard event={selected} /> : <Empty>Select an event on the timeline or in the log.</Empty>,
         },
@@ -132,7 +132,7 @@ function EventLog({
                     {fmtDay(e.t)}
                     <span className="truncate text-accent-ink">{e.type}</span>
                   </span>
-                  <span className="mt-0.5 block text-sm font-medium text-ink">{e.entityName}</span>
+                  <span className={clsx("mt-0.5 block text-sm font-medium", e.entityName ? "text-ink" : "text-ink-2")}>{e.entityName ?? "Unresolved party"}</span>
                   <span className="block truncate text-xs text-ink-2">{e.headline}</span>
                 </span>
               </button>

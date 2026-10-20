@@ -11,7 +11,7 @@ from collections.abc import Iterable, Sequence
 from datetime import date, timedelta
 from math import sqrt
 
-from sqlalchemy import Select, and_, desc, func, select
+from sqlalchemy import Select, and_, desc, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
 from finpulse.db.models import (
@@ -37,6 +37,10 @@ WINDOW_DAYS = {"7d": 7, "30d": 30, "90d": 90, "365d": 365}
 MAX_ENTITIES = 200
 
 
+# Documents analysed on request are not part of the collected corpus (see migration 0006).
+IN_CORPUS = Document.is_submission.is_(False)
+
+
 def label_for(score: float | None) -> s.SentimentLabel | None:
     if score is None:
         return None
@@ -44,7 +48,7 @@ def label_for(score: float | None) -> s.SentimentLabel | None:
 
 
 def anchor_date(db: Session) -> date | None:
-    return db.scalar(select(func.max(Document.published_at)))
+    return db.scalar(select(func.max(Document.published_at)).where(IN_CORPUS))
 
 
 def window_start(anchor: date | None, window: str) -> date | None:
@@ -63,10 +67,21 @@ def active_model(db: Session) -> str | None:
 
 def corpus_status(db: Session) -> s.CorpusStatus:
     return s.CorpusStatus(
-        documents=db.scalar(select(func.count()).select_from(Document)) or 0,
-        entities=db.scalar(select(func.count(func.distinct(Mention.entity_id)))) or 0,
-        events=db.scalar(select(func.count()).select_from(Event)) or 0,
-        last_ingest_at=db.scalar(select(func.max(Document.retrieved_at))),
+        documents=db.scalar(select(func.count()).select_from(Document).where(IN_CORPUS)) or 0,
+        entities=db.scalar(
+            select(func.count(func.distinct(Mention.entity_id)))
+            .join(Document, Document.id == Mention.doc_id)
+            .where(IN_CORPUS)
+        )
+        or 0,
+        events=db.scalar(
+            select(func.count())
+            .select_from(Event)
+            .join(Document, Document.id == Event.doc_id)
+            .where(IN_CORPUS)
+        )
+        or 0,
+        last_ingest_at=db.scalar(select(func.max(Document.retrieved_at)).where(IN_CORPUS)),
     )
 
 
@@ -218,6 +233,8 @@ def event_markers(
         .join(Document, Document.id == Event.doc_id)
         .join(Entity, Entity.id == Event.entity_id, isouter=True)
     )
+    if doc_id is None:  # a submission's own events are reachable by its id, never through the corpus lists
+        stmt = stmt.where(IN_CORPUS)
     if window:
         start = window_start(anchor_date(db), window)
         if start is not None:
@@ -358,7 +375,7 @@ def list_documents(
     limit: int = 50,
     offset: int = 0,
 ) -> list[s.FilingItem]:
-    stmt = select(Document)
+    stmt = select(Document).where(IN_CORPUS)
     if source:
         stmt = stmt.where(Document.source_kind == source)
     if status:
@@ -432,7 +449,13 @@ def latest_summary(
 def list_summaries(
     db: Session, *, entity_slug: str | None = None, window: str | None = None, limit: int = 50
 ) -> list[s.Summary]:
-    stmt = select(Summary).order_by(desc(Summary.generated_at), desc(Summary.id)).limit(limit)
+    stmt = (
+        select(Summary)
+        .join(Document, Document.id == Summary.doc_id, isouter=True)
+        .where(or_(Document.id.is_(None), IN_CORPUS))
+        .order_by(desc(Summary.generated_at), desc(Summary.id))
+        .limit(limit)
+    )
     if entity_slug:
         stmt = stmt.join(Entity, Entity.id == Summary.entity_id).where(Entity.slug == entity_slug)
     if window:
@@ -515,7 +538,12 @@ def company_detail(db: Session, slug: str, window: str) -> s.CompanyDetail | Non
             score=None,
             delta=None,
             sentiment=None,
-            mentions=db.scalar(select(func.count()).select_from(Mention).where(Mention.entity_id == ent.id))
+            mentions=db.scalar(
+                select(func.count())
+                .select_from(Mention)
+                .join(Document, Document.id == Mention.doc_id)
+                .where(Mention.entity_id == ent.id, IN_CORPUS)
+            )
             or 0,
             confidence=None,
             series=[],
@@ -530,7 +558,7 @@ def company_detail(db: Session, slug: str, window: str) -> s.CompanyDetail | Non
             and_(MentionSentiment.mention_id == Mention.id, MentionSentiment.model_version == model),
             isouter=True,
         )
-        .where(Mention.entity_id == ent.id)
+        .where(Mention.entity_id == ent.id, IN_CORPUS)
         .order_by(desc(Document.published_at).nulls_last(), Mention.char_start)
         .limit(40)
     ).all()
@@ -597,7 +625,7 @@ def search(db: Session, query: str, limit: int = 10) -> s.SearchResults:
             FROM sentences s
             JOIN documents d ON d.id = s.doc_id,
                  websearch_to_tsquery('english', :q) q
-            WHERE s.tsv @@ q
+            WHERE s.tsv @@ q AND NOT d.is_submission
             ORDER BY rank DESC, d.id
             LIMIT :pool
             """

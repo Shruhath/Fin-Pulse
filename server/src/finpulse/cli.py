@@ -314,6 +314,39 @@ def _ectsum(a: argparse.Namespace) -> int:
     return 0
 
 
+def _ask(a: argparse.Namespace) -> int:
+    from finpulse.pipeline.ask import answer_question, load_runtime
+
+    runtime = load_runtime()
+    if a.eval:
+        from finpulse.eval.qa import run_qa_eval
+
+        with session_scope() as s:
+            system, baseline = run_qa_eval(s, runtime, n_each=a.n_each)
+        if runtime.llm is not None:
+            runtime.llm.unload(runtime.model)
+        print("  system  ", {k: round(v, 3) for k, v in system.items()})
+        print("  baseline", {k: round(v, 3) for k, v in baseline.items()})
+        return 0
+    if not a.question:
+        print("give a question, or --eval to measure question answering", file=sys.stderr)
+        return 2
+
+    def show(key: str, status: str, ms: int | None, note: str | None) -> None:
+        if status != "running":
+            print(f"  [{status:^7}] {key:<9} {'' if ms is None else f'{ms / 1000:5.1f}s'}  {note or ''}")
+
+    with session_scope() as s:
+        out = answer_question(s, a.question, runtime, on_stage=show)
+    if out.abstained:
+        print(f"\nNo answer: {out.reason}")
+    for claim in out.claims:
+        print(f"\n[{claim.verification}] {claim.text}")
+        if claim.evidence is not None:
+            print(f'    "{claim.evidence.text[:160]}" ({claim.evidence.title})')
+    return 0
+
+
 def _embed(a: argparse.Namespace) -> int:
     from finpulse.pipeline.batch import run_pipeline
 
@@ -464,6 +497,11 @@ def build_parser() -> argparse.ArgumentParser:
     ec.add_argument("--n", type=int, default=60)
     ec.add_argument("--no-nli", action="store_true")
     ec.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+
+    ask = add("ask", _ask, "ask a question of the corpus, or --eval to measure question answering")
+    ask.add_argument("question", nargs="?")
+    ask.add_argument("--eval", action="store_true", help="score retrieval, answers and abstention")
+    ask.add_argument("--n-each", type=int, default=20, help="questions per kind for --eval")
 
     em = add("embed", _embed, "embed sentences for dense retrieval")
     em.add_argument("--limit", type=int)

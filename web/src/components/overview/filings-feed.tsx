@@ -22,13 +22,13 @@ export function FilingsFeed({ filings, selectedId }: { filings: FilingItem[]; se
   return (
     <ol className="divide-y divide-line">
       {filings.map((f) => {
-        const linked = (entityId && f.entities.some((e) => e.id === entityId)) || (day && f.publishedAt.slice(0, 10) === day);
+        const linked = (entityId && f.entities.some((e) => e.id === entityId)) || (day && f.publishedAt?.slice(0, 10) === day);
         const dim = (entityId || day) && !linked && f.id !== selectedId;
         const selected = f.id === selectedId;
         return (
           <li
             key={f.id}
-            onPointerEnter={() => setFocus({ entityId: f.entities[0]?.id ?? null, day: f.publishedAt.slice(0, 10) })}
+            onPointerEnter={() => setFocus({ entityId: f.entities[0]?.id ?? null, day: f.publishedAt?.slice(0, 10) ?? null })}
             onPointerLeave={() => setFocus({ entityId: null, day: null })}
             className={clsx(
               "relative px-3 py-2.5 transition-[background-color,opacity] duration-150",
@@ -38,8 +38,8 @@ export function FilingsFeed({ filings, selectedId }: { filings: FilingItem[]; se
           >
             <div className="flex items-center gap-2 font-mono text-2xs text-ink-3">
               <SourceBadge kind={f.source} />
-              <time dateTime={f.publishedAt}>
-                {fmtDay(f.publishedAt)} {fmtTime(f.publishedAt).toLowerCase()}
+              <time dateTime={f.publishedAt ?? undefined}>
+                {fmtDay(f.publishedAt)} {f.publishedAt && fmtTime(f.publishedAt).toLowerCase()}
               </time>
               {STATUS[f.status] && <span className="ml-auto text-warn">{STATUS[f.status]}</span>}
             </div>

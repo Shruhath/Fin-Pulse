@@ -5,6 +5,7 @@ import {
   CalendarClock,
   FileText,
   FlaskConical,
+  MessageSquareText,
   ScanSearch,
   type LucideIcon,
 } from "lucide-react";
@@ -27,8 +28,9 @@ export const WORKSPACES: WorkspaceDef[] = [
   { n: 3, key: "filings", layout: "tile", ratio: 0.58, label: "filings", href: "/filings", icon: FileText, hint: "Read a disclosure with the model's reading on top" },
   { n: 4, key: "events", layout: "tile", ratio: 0.6, label: "events", href: "/events", icon: CalendarClock, hint: "Extracted events by type and date" },
   { n: 5, key: "analyze", layout: "tile", ratio: 0.4, label: "analyze", href: "/analyze", icon: ScanSearch, hint: "Run the pipeline on text, a URL or a PDF" },
-  { n: 6, key: "evaluation", layout: "grid", ratio: 0.55, label: "eval", href: "/evaluation", icon: FlaskConical, hint: "Models against baselines, India transfer gap" },
-  { n: 7, key: "method", layout: "tile", ratio: 0.5, label: "method", href: "/method", icon: BookOpenText, hint: "How the pipeline works, data and team" },
+  { n: 6, key: "ask", layout: "tile", ratio: 0.58, label: "ask", href: "/ask", icon: MessageSquareText, hint: "Ask the filings a question; every claim is checked against its source" },
+  { n: 7, key: "evaluation", layout: "grid", ratio: 0.55, label: "eval", href: "/evaluation", icon: FlaskConical, hint: "Models against baselines, India transfer gap" },
+  { n: 8, key: "method", layout: "tile", ratio: 0.5, label: "method", href: "/method", icon: BookOpenText, hint: "How the pipeline works, data and team" },
 ];
 
 export function workspaceFor(pathname: string): WorkspaceDef {

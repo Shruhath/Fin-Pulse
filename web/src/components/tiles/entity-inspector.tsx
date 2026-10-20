@@ -13,12 +13,16 @@ import { EventCard } from "./event-card";
 /** Who the filing is about, how it reads for each of them, and what happened. */
 export function EntityInspector({ doc }: { doc: DocumentDetail }) {
   const { entityId, setFocus } = useFocus();
-  const byEntity = new Map<string, { surface: string; n: number; conf: number; votes: Record<SentimentLabel, number> }>();
+  const byEntity = new Map<string, { surface: string; n: number; scored: number; conf: number; votes: Record<SentimentLabel, number> }>();
   for (const s of doc.spans) {
-    const e = byEntity.get(s.entityId) ?? { surface: s.surface, n: 0, conf: 0, votes: { positive: 0, negative: 0, neutral: 0 } };
+    if (s.entityId === null) continue;
+    const e = byEntity.get(s.entityId) ?? { surface: s.surface, n: 0, scored: 0, conf: 0, votes: { positive: 0, negative: 0, neutral: 0 } };
     e.n += 1;
-    e.conf += s.confidence;
-    e.votes[s.sentiment] += 1;
+    if (s.confidence !== null) {
+      e.scored += 1;
+      e.conf += s.confidence;
+    }
+    if (s.sentiment !== null) e.votes[s.sentiment] += 1;
     if (s.surface.length > e.surface.length) e.surface = s.surface;
     byEntity.set(s.entityId, e);
   }
@@ -33,7 +37,8 @@ export function EntityInspector({ doc }: { doc: DocumentDetail }) {
         ) : (
           <ul className="mt-2 space-y-1">
             {[...byEntity].map(([id, e]) => {
-              const label = (Object.entries(e.votes).sort((a, b) => b[1] - a[1])[0][0]) as SentimentLabel;
+              const [top, votes] = Object.entries(e.votes).sort((a, b) => b[1] - a[1])[0];
+              const label = votes === 0 ? null : (top as SentimentLabel);
               return (
                 <li
                   key={id}
@@ -46,7 +51,7 @@ export function EntityInspector({ doc }: { doc: DocumentDetail }) {
                       {names.get(id) ?? e.surface}
                     </Link>
                     <p className="font-mono text-2xs text-ink-3">
-                      {e.n} mention{e.n > 1 ? "s" : ""} · conf {fmtPct(e.conf / e.n)}
+                      {e.n} mention{e.n > 1 ? "s" : ""} · conf {fmtPct(e.scored ? e.conf / e.scored : null)}
                     </p>
                   </div>
                   <SentimentPill sentiment={label} />

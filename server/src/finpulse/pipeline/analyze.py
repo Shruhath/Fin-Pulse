@@ -78,6 +78,7 @@ def document_from_text(session: Session, body: str, title: str | None, source: s
         clean_text="",
         status="ingested",
         published_at=date.today(),
+        is_submission=True,
         meta={"origin": "analyze-text", "text": body},
     )
     session.add(doc)
@@ -103,6 +104,7 @@ def document_from_bytes(session: Session, data: bytes, filename: str, source: st
         clean_text="",
         status="ingested",
         published_at=date.today(),
+        is_submission=True,
         meta={"origin": "analyze-file", "filename": filename},
     )
     session.add(doc)

@@ -74,6 +74,7 @@ function entityRows(window: Window): EntityRow[] {
     const score = +avg(cur).toFixed(2);
     return {
       id,
+      kind: "company",
       name,
       ticker,
       sector,
@@ -177,6 +178,7 @@ export function previewDocument(id: string): DocumentDetail | null {
   return {
     ...filingOf(d),
     url: `https://example.invalid/preview/${d.id}`,
+    pages: null,
     words: d.text.split(/\s+/).length,
     ocr: !!d.ocr,
     text: d.text,
@@ -205,7 +207,7 @@ export function previewEvents(window: Window): EventRecord[] {
     arguments: {},
     extractor: i % 3 === 0 ? "rules" : "llm",
   }));
-  return [...fromDocs, ...extra].sort((a, b) => b.t.localeCompare(a.t));
+  return [...fromDocs, ...extra].sort((a, b) => (b.t ?? "").localeCompare(a.t ?? ""));
 }
 
 export function previewOverview(window: Window): Overview {
@@ -227,6 +229,8 @@ export function previewOverview(window: Window): Overview {
   });
   return {
     window,
+    asOf: isoDay(0),
+    sentimentModel: "preview (synthetic)",
     corpus: { documents: 1842, entities: 412, events: 236, lastIngestAt: isoAt(0, -0.2) },
     sources: [
       { kind: "BSE", documents: 1187 },
@@ -322,6 +326,8 @@ export function previewEval(): EvalReport {
       ],
     },
     reliability: {
+      model: "FinBERT, entity-marked",
+      dataset: "FinPulse gold",
       before: [0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95].map((c, i) => ({ confidence: c, accuracy: Math.max(0, c - [0.02, 0.06, 0.1, 0.12, 0.13, 0.11, 0.08][i]), n: [8, 19, 41, 66, 92, 131, 113][i] })),
       after: [0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95].map((c, i) => ({ confidence: c, accuracy: Math.max(0, c - [0.03, 0.01, -0.02, 0.02, 0.01, 0.03, 0.02][i]), n: [11, 27, 52, 78, 104, 118, 80][i] })),
       eceBefore: 0.094,

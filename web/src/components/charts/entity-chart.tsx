@@ -69,7 +69,7 @@ export function EntityChart({ series, events, name }: { series: SeriesPoint[]; e
     const lane = innerH + 14;
     g.append("g")
       .selectAll("path")
-      .data(events.filter((e) => day(e.t) >= x.domain()[0]))
+      .data(events.filter((e): e is EventRecord & { t: string } => e.t !== null && day(e.t) >= x.domain()[0]))
       .join("path")
       .attr("class", "ec-event")
       .attr("d", d3.symbol(d3.symbolDiamond, 48)())

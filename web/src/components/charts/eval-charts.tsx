@@ -7,6 +7,18 @@ import { useGSAP } from "@gsap/react";
 
 import type { Confusion, MetricRow, ReliabilityBin } from "@/lib/api/types";
 
+/** Break a long model name into at most three lines of `max` characters, at spaces. */
+function wrapLabel(text: string, max: number): string[] {
+  const lines: string[] = [];
+  for (const word of text.split(" ")) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + word.length <= max) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  if (lines.length > 3) lines.splice(3, lines.length - 3, `${lines.slice(2).join(" ").slice(0, max - 1)}…`);
+  return lines;
+}
+
 function useSize<T extends HTMLElement>(minH: number) {
   const ref = useRef<T>(null);
   const [size, setSize] = useState({ w: 0, h: minH });
@@ -33,7 +45,8 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg || size.w === 0) return;
-    const M = { top: 28, right: 24, bottom: 34, left: Math.min(220, size.w * 0.38) };
+    const M = { top: 28, right: 24, bottom: 34, left: Math.min(250, size.w * 0.42) };
+    const labelChars = Math.max(12, Math.floor((M.left - 14) / 6.8));
     const innerW = size.w - M.left - M.right;
     const innerH = Math.min(size.h - M.top - M.bottom, models.length * 76);
     const x = d3.scaleLinear().domain([0.4, 1]).range([0, innerW]);
@@ -49,15 +62,17 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
       const rs = rows.filter((r) => r.model === m);
       const baseline = rs[0]?.baseline;
       const cy = y(m)! + y.bandwidth() / 2;
-      g.append("text")
+      const lines = wrapLabel(m, labelChars);
+      const label = g
+        .append("text")
         .attr("x", -14)
-        .attr("y", cy)
-        .attr("dy", "0.32em")
+        .attr("y", cy - ((lines.length - 1) * 15) / 2)
         .attr("text-anchor", "end")
         .attr("fill", baseline ? "var(--text-2)" : "var(--text)")
         .attr("font-weight", baseline ? 400 : 600)
-        .attr("font-size", 12.5)
-        .text(m);
+        .attr("font-size", 12.5);
+      lines.forEach((line, i) => label.append("tspan").attr("x", -14).attr("dy", i === 0 ? "0.32em" : 15).text(line));
+      label.append("title").text(m);
       const vals = rs.map((r) => r.metrics.macroF1);
       const lo = d3.min(vals)!;
       const hi = d3.max(vals)!;
@@ -179,7 +194,7 @@ export function ConfusionMatrix({ data }: { data: Confusion }) {
 }
 
 /** Reliability diagram: accuracy per confidence bin before and after temperature scaling. */
-export function Reliability({ before, after, eceBefore, eceAfter }: { before: ReliabilityBin[]; after: ReliabilityBin[]; eceBefore: number; eceAfter: number }) {
+export function Reliability({ before, after, eceBefore, eceAfter }: { before: ReliabilityBin[]; after: ReliabilityBin[] | null; eceBefore: number; eceAfter: number | null }) {
   const [ref, size] = useSize<HTMLDivElement>(200);
   const svgRef = useRef<SVGSVGElement>(null);
   useEffect(() => {
@@ -187,19 +202,21 @@ export function Reliability({ before, after, eceBefore, eceAfter }: { before: Re
     if (!svg || size.w === 0) return;
     const M = { top: 10, right: 14, bottom: 34, left: 40 };
     const side = Math.min(size.w - M.left - M.right, size.h - M.top - M.bottom);
-    const x = d3.scaleLinear().domain([0.3, 1]).range([0, side]);
-    const y = d3.scaleLinear().domain([0.3, 1]).range([side, 0]);
+    // low-confidence bins can be far below the diagonal; widen both axes so none is cut off
+    const floor = Math.min(0.3, Math.floor(Math.min(...[...before, ...(after ?? [])].map((b) => Math.min(b.accuracy, b.confidence))) * 10) / 10);
+    const x = d3.scaleLinear().domain([floor, 1]).range([0, side]);
+    const y = d3.scaleLinear().domain([floor, 1]).range([side, 0]);
     const root = d3.select(svg);
     root.selectAll("*").remove();
     const g = root.append("g").attr("transform", `translate(${M.left},${M.top})`);
     g.append("g").attr("class", "fp-axis").attr("transform", `translate(0,${side})`).call(d3.axisBottom(x).ticks(4).tickSize(-side).tickPadding(6));
     g.append("g").attr("class", "fp-axis").call(d3.axisLeft(y).ticks(4).tickSize(-side).tickPadding(6));
-    g.append("line").attr("x1", x(0.3)).attr("y1", y(0.3)).attr("x2", x(1)).attr("y2", y(1)).attr("stroke", "var(--chart-zero)").attr("stroke-dasharray", "3 3");
+    g.append("line").attr("x1", x(floor)).attr("y1", y(floor)).attr("x2", x(1)).attr("y2", y(1)).attr("stroke", "var(--chart-zero)").attr("stroke-dasharray", "3 3");
     const line = d3.line<ReliabilityBin>().x((d) => x(d.confidence)).y((d) => y(d.accuracy));
     g.append("path").datum(before).attr("d", line).attr("fill", "none").attr("stroke", "var(--text-3)").attr("stroke-width", 1.5);
-    g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2);
+    if (after) g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2);
     g.selectAll("circle.b").data(before).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3).attr("fill", "var(--surface)").attr("stroke", "var(--text-3)");
-    g.selectAll("circle.a").data(after).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3.5).attr("fill", "var(--accent)");
+    g.selectAll("circle.a").data(after ?? []).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3.5).attr("fill", "var(--accent)");
     g.append("text").attr("x", side).attr("y", side + 30).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-family", "var(--font-mono)").attr("font-size", 10).text("confidence → accuracy ↑");
   }, [before, after, size]);
   return (
@@ -208,12 +225,14 @@ export function Reliability({ before, after, eceBefore, eceAfter }: { before: Re
         <li className="flex items-center gap-1.5">
           <span className="h-px w-4 bg-ink-3" aria-hidden="true" /> before · ECE {eceBefore.toFixed(3)}
         </li>
-        <li className="flex items-center gap-1.5">
-          <span className="h-0.5 w-4 bg-accent" aria-hidden="true" /> after temperature scaling · ECE {eceAfter.toFixed(3)}
-        </li>
+        {eceAfter !== null && (
+          <li className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 bg-accent" aria-hidden="true" /> after temperature scaling · ECE {eceAfter.toFixed(3)}
+          </li>
+        )}
       </ul>
       <div ref={ref} className="relative min-h-0 flex-1">
-        <svg ref={svgRef} width={size.w} height={size.h} role="img" aria-label={`Reliability diagram. ECE ${eceBefore.toFixed(3)} before and ${eceAfter.toFixed(3)} after calibration.`} className="absolute inset-0" />
+        <svg ref={svgRef} width={size.w} height={size.h} role="img" aria-label={eceAfter === null ? `Reliability diagram. ECE ${eceBefore.toFixed(3)}, not calibrated.` : `Reliability diagram. ECE ${eceBefore.toFixed(3)} before and ${eceAfter.toFixed(3)} after calibration.`} className="absolute inset-0" />
       </div>
     </div>
   );

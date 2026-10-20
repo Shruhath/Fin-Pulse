@@ -7,13 +7,13 @@ import { useGSAP } from "@gsap/react";
 import { Workspace } from "@/components/wm/workspace";
 
 const STAGES = [
-  { name: "Collect", model: "BSE · RBI · SEBI · NCLT", base: "robots.txt, rate-limited" },
-  { name: "Prepare", model: "PyMuPDF + OCR", base: "MinHash dedup, LexRank prune" },
-  { name: "Entities", model: "DeBERTa-v3 NER", base: "vs CRF + gazetteer" },
+  { name: "Collect", model: "SEBI · NCLT via IBBI · RBI feed", base: "one request per second, stops on a block" },
+  { name: "Prepare", model: "PyMuPDF + Tesseract", base: "MinHash dedup, LexRank prune" },
+  { name: "Entities", model: "Gazetteer + order-title parties", base: "DeBERTa-v3 and CRF measured" },
   { name: "Sentiment", model: "FinBERT, entity-marked", base: "vs TF-IDF + LR" },
   { name: "Events", model: "Qwen 2.5 7B", base: "vs rules" },
   { name: "Summary", model: "Llama 3.1 8B", base: "vs Lead-3" },
-  { name: "Verify", model: "BM25 + bge-m3 → NLI", base: "entailed / contradicted" },
+  { name: "Verify", model: "BM25 + bge-base → NLI", base: "entailed / contradicted" },
 ];
 
 /** The pipeline as a vertical rail: one row per stage, a document travelling down it. */
@@ -67,11 +67,9 @@ const RQ = [
 const DATA: [string, string, string][] = [
   ["FinEntity", "979 paragraphs, 2,131 entity spans", "entity spans + sentiment benchmark"],
   ["SEntFiN 1.0", "10,753 Indian headlines", "Indian entity sentiment, alias list"],
-  ["Financial PhraseBank", "4,845 sentences", "sentence sentiment warm-up"],
-  ["FiQA 2018 task 1", "~1,173 items", "aspect sentiment (thresholded)"],
-  ["EDT", "9,721 articles, 11 event types", "event taxonomy and evaluation"],
-  ["ECTSum", "2,425 transcript–summary pairs", "long-document summary evaluation"],
-  ["FinPulse corpus", "BSE, RBI, SEBI, NCLT disclosures", "new: gold and silver labels, IEEE DataPort"],
+  ["EDT", "9,721 articles, 11 event types", "starting point for the event taxonomy; not trained on"],
+  ["ECTSum", "2,425 transcript–summary pairs", "summary evaluation on a 40-transcript sample"],
+  ["FinPulse corpus", "SEBI, NCLT and RBI disclosures", "new: silver labels now, gold labels once annotated"],
 ];
 
 const TEAM: [string, string, string][] = [
@@ -153,6 +151,7 @@ export function MethodWorkspace() {
               <li>Only public disclosures from exchanges and regulators; news is linked by URL and offsets, not republished.</li>
               <li>robots.txt is respected and every source is rate-limited to one request per second.</li>
               <li>Human gold labels and machine silver labels never share a file, row or export.</li>
+              <li>The published dataset carries offsets, labels and hashes, not order text, until the publishers have given permission.</li>
               <li>FinPulse describes what documents say. It does not give investment advice.</li>
             </ul>
           ),

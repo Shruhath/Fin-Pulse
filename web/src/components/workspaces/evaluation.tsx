@@ -4,20 +4,41 @@ import { ConfusionMatrix, Reliability, TransferPlot } from "@/components/charts/
 import { Empty } from "@/components/ui/states";
 import { Workspace } from "@/components/wm/workspace";
 import type { EvalReport, MetricRow } from "@/lib/api/types";
-import { fmtDayLong } from "@/lib/format";
+import { fmtDayLong, fmtInt } from "@/lib/format";
 
 const TASK: Record<MetricRow["task"], string> = {
   ner: "Entity recognition and linking",
   sentiment: "Entity-level sentiment",
   events: "Event extraction",
   summaries: "Grounded summaries",
+  qa: "Question answering (silver questions generated from the corpus)",
 };
 
 const METRIC_LABEL: Record<string, string> = {
   macroF1: "macro-F1",
   weightedF1: "weighted-F1",
   ece: "ECE",
+  ece_before: "ECE before",
+  temperature: "temperature",
+  accuracy: "accuracy",
+  n: "n",
   spanF1: "span F1",
+  spanPrecision: "span precision",
+  spanRecall: "span recall",
+  goldSpans: "gold spans",
+  rouge1: "ROUGE-1",
+  rouge2: "ROUGE-2",
+  contradicted: "contradicted",
+  skipped: "skipped",
+  hitAt8Entity: "hit@8, company named",
+  hitAt8Amount: "hit@8, amount only",
+  answered: "answered",
+  claimsEntailed: "claims supported",
+  claimsContradicted: "claims contradicted",
+  abstainAbsent: "abstains, absent company",
+  abstainOfftopic: "abstains, off topic",
+  entailedEntity: "supported, company named",
+  entailedAmount: "supported, amount only",
   linkAcc: "link acc.",
   typeF1: "type F1",
   argF1: "argument F1",
@@ -27,6 +48,10 @@ const METRIC_LABEL: Record<string, string> = {
   attribution: "attribution",
   unsupported: "unsupported",
 };
+
+const COUNTS = new Set(["n", "goldSpans", "skipped"]);
+const THREE_PLACES = new Set(["ece", "ece_before"]);
+const formatMetric = (key: string, v: number) => (COUNTS.has(key) ? fmtInt(v) : v.toFixed(THREE_PLACES.has(key) ? 3 : 2));
 
 export function EvaluationWorkspace({ report, preview }: { report: EvalReport; preview: boolean }) {
   const measured = report.rows.length > 0;
@@ -114,7 +139,7 @@ function MetricsTable({ rows, agreement }: { rows: MetricRow[]; agreement: EvalR
                       </td>
                       {keys.map((k) => (
                         <td key={k} className="px-3 py-1.5 text-right font-mono text-xs text-ink">
-                          {r.metrics[k] === undefined ? "—" : r.metrics[k].toFixed(k === "ece" ? 3 : 2)}
+                          {r.metrics[k] === undefined ? "—" : formatMetric(k, r.metrics[k])}
                         </td>
                       ))}
                     </tr>
