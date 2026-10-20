@@ -8,7 +8,7 @@ import { Empty, Missing } from "@/components/ui/states";
 import { Workspace } from "@/components/wm/workspace";
 import type { DocumentDetail, FilingItem } from "@/lib/api/types";
 
-export function FilingsWorkspace({ filings, doc }: { filings: FilingItem[]; doc: DocumentDetail | null }) {
+export function FilingsWorkspace({ filings, doc, at }: { filings: FilingItem[]; doc: DocumentDetail | null; at?: { start: number; end: number } | null }) {
   return (
     <Workspace
       tiles={[
@@ -18,7 +18,7 @@ export function FilingsWorkspace({ filings, doc }: { filings: FilingItem[]; doc:
           cls: "reader",
           title: doc ? doc.title.toLowerCase() : "reader",
           mobileMinH: 420,
-          node: doc ? <DocReader doc={doc} /> : <Missing what="filing" />,
+          node: doc ? <DocReader doc={doc} at={at} /> : <Missing what="filing" />,
         },
         {
           id: "filing-list",

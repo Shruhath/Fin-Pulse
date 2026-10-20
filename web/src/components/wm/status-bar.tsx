@@ -35,7 +35,7 @@ export function StatusBar({ corpus, preview }: { corpus: CorpusStatus | null; pr
               aria-current={active ? "page" : undefined}
               title={`${w.hint} (${w.n})`}
               className={clsx(
-                "flex items-center gap-1.5 px-2.5 no-underline transition-colors",
+                "flex items-center gap-1.5 px-2 no-underline transition-colors md:px-2.5",
                 active ? "bg-accent font-semibold text-[#0e1015]" : "hover:bg-white/8 hover:text-[#ece7dc]",
               )}
             >

@@ -97,6 +97,13 @@ export type StageKey = S["JobStage"]["key"];
 export type JobStage = S["JobStage"];
 export type Job = S["Job"];
 
+/* ---------- questions ---------- */
+
+export type AskStage = S["AskStage"];
+export type AskPassage = S["AskPassage"];
+export type AskAnswer = S["AskAnswer"];
+export type AskJob = S["AskJob"];
+
 /* ---------- launcher index ---------- */
 
 export type SearchIndex = S["SearchIndex"];

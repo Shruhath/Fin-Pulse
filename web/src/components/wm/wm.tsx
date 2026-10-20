@@ -182,7 +182,7 @@ export function WMProvider({ children }: { children: React.ReactNode }) {
       }
       if (typing || e.ctrlKey || e.metaKey || e.altKey || launcherOpen) return;
       const k = e.key;
-      if (/^[1-7]$/.test(k)) {
+      if (/^[1-8]$/.test(k)) {
         e.preventDefault();
         router.push(WORKSPACES[Number(k) - 1].href);
       } else if (k === "l" || k === "j") {

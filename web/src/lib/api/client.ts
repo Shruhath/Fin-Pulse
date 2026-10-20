@@ -83,5 +83,9 @@ export const getEval = () =>
 export const getSearchIndex = () =>
   isPreview() ? Promise.resolve(local<SearchIndex>(preview.previewSearchIndex())) : get<SearchIndex>("/api/search/index");
 
+/** Questions to try, built from the newest extracted events; none in preview mode, which has no pipeline. */
+export const getAskSuggestions = () =>
+  isPreview() ? Promise.resolve(local<string[]>([])) : get<string[]>("/api/ask/suggestions");
+
 export const getWallpaper = () =>
   isPreview() ? Promise.resolve(local<number[][]>(preview.previewWallpaper())) : get<number[][]>("/api/wallpaper");

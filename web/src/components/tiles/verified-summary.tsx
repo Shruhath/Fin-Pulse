@@ -10,6 +10,12 @@ import { Empty } from "@/components/ui/states";
 import type { Claim, Summary, Verification } from "@/lib/api/types";
 import { NONE } from "@/lib/format";
 
+/** The filing, opened at the sentence the claim was checked against. */
+export function filingHref(ev: { documentId: string; start?: number | null; end?: number | null }) {
+  const at = ev.start != null && ev.end != null ? `?at=${ev.start}-${ev.end}` : "";
+  return `/filings/${ev.documentId}${at}`;
+}
+
 const ORDER: Record<Verification, number> = { contradicted: 0, unverified: 1, entailed: 2 };
 
 const V: Record<Verification, { icon: typeof CheckCircle2; label: string; ink: string }> = {
@@ -51,7 +57,7 @@ export function VerifiedSummary({ summary, currentDocumentId }: { summary: Summa
   );
 }
 
-function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentId?: string }) {
+export function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentId?: string }) {
   const { setFocus, span } = useFocus();
   const { icon: Icon, label, ink } = V[claim.verification];
   const ev = claim.evidence;
@@ -84,7 +90,7 @@ function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentI
               {ev.documentId === currentDocumentId ? (
                 <span>this filing · point at it to locate</span>
               ) : (
-                <Link href={`/filings/${ev.documentId}`} className="truncate text-link hover:underline">
+                <Link href={filingHref(ev)} className="truncate text-link hover:underline">
                   {ev.documentTitle}
                 </Link>
               )}

@@ -13,6 +13,7 @@ import { Empty } from "@/components/ui/states";
 import { useWM } from "@/components/wm/wm";
 import { Workspace } from "@/components/wm/workspace";
 import type { components } from "@/lib/api/schema";
+import { problem } from "@/lib/api/problem";
 import type { DocumentDetail, Job, JobStage, SourceKind, StageKey } from "@/lib/api/types";
 
 const STAGES: { key: StageKey; label: string; how: string }[] = [
@@ -45,17 +46,6 @@ const SOURCES: { value: SourceKind; label: string }[] = [
 ];
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
-
-/** The API's own explanation of a refusal (FastAPI sends it as `detail`), else the bare status. */
-async function problem(res: Response): Promise<string> {
-  try {
-    const { detail } = (await res.json()) as { detail?: unknown };
-    if (typeof detail === "string") return detail;
-  } catch {
-    /* not JSON */
-  }
-  return `The API answered ${res.status}.`;
-}
 
 const idle = (): JobStage[] => STAGES.map(({ key }) => ({ key, status: "pending", ms: null, note: null }));
 

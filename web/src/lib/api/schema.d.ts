@@ -44,6 +44,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask
+         * @description Queue a question. The answer is built by the worker; poll `/ask/{id}` for its progress.
+         */
+        post: operations["ask_api_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ask/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggestions */
+        get: operations["suggestions_api_ask_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ask/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ask Job */
+        get: operations["ask_job_api_ask__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents": {
         parameters: {
             query?: never;
@@ -354,6 +408,100 @@ export interface components {
             title?: string | null;
             /** Url */
             url?: string | null;
+        };
+        /** AskAccepted */
+        AskAccepted: {
+            /** Jobid */
+            jobId: string;
+        };
+        /** AskAnswer */
+        AskAnswer: {
+            /** Abstained */
+            abstained: boolean;
+            /** Claims */
+            claims: components["schemas"]["Claim"][];
+            /** Entities */
+            entities: components["schemas"]["SearchCompany"][];
+            /** Model */
+            model: string | null;
+            /** Passages */
+            passages: components["schemas"]["AskPassage"][];
+            /** Promptversion */
+            promptVersion: string;
+            /** Question */
+            question: string;
+            /** Reason */
+            reason: string | null;
+            /** Retrieval */
+            retrieval: string;
+            /** Seconds */
+            seconds: number;
+            /** Sources */
+            sources: ("BSE" | "NSE" | "SEBI" | "RBI" | "NCLT" | "NEWS")[];
+        };
+        /** AskJob */
+        AskJob: {
+            answer?: components["schemas"]["AskAnswer"] | null;
+            /** Error */
+            error?: string | null;
+            /** Id */
+            id: string;
+            /** Stages */
+            stages: components["schemas"]["AskStage"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
+        };
+        /**
+         * AskPassage
+         * @description A retrieved sentence: where the claims' evidence comes from, whether or not a claim cites it.
+         */
+        AskPassage: {
+            /** Cited */
+            cited: boolean;
+            /** Documentid */
+            documentId: string;
+            /** Documenttitle */
+            documentTitle: string;
+            /** End */
+            end?: number | null;
+            /** Publishedat */
+            publishedAt: string | null;
+            /** Rank */
+            rank: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "BSE" | "NSE" | "SEBI" | "RBI" | "NCLT" | "NEWS";
+            /** Start */
+            start?: number | null;
+            /** Text */
+            text: string;
+        };
+        /** AskRequest */
+        AskRequest: {
+            /** Question */
+            question: string;
+        };
+        /** AskStage */
+        AskStage: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "retrieve" | "answer" | "verify";
+            /** Ms */
+            ms: number | null;
+            /** Note */
+            note: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "done" | "failed" | "skipped";
         };
         /** Body_analyze_file_api_analyze_file_post */
         Body_analyze_file_api_analyze_file_post: {
@@ -735,7 +883,7 @@ export interface components {
              * Task
              * @enum {string}
              */
-            task: "ner" | "sentiment" | "events" | "summaries";
+            task: "ner" | "sentiment" | "events" | "summaries" | "qa";
         };
         /** Overview */
         Overview: {
@@ -1011,6 +1159,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalyzeAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_api_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggestions_api_ask_suggestions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_job_api_ask__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskJob"];
                 };
             };
             /** @description Validation Error */

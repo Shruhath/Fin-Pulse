@@ -22,8 +22,17 @@ interface Seg {
  * slicing the model's character offsets, never by searching for the surface
  * form, so a wrong offset shows up as a visibly wrong mark.
  */
-export function DocReader({ doc }: { doc: DocumentDetail }) {
+export function DocReader({ doc, at }: { doc: DocumentDetail; at?: { start: number; end: number } | null }) {
   const { span, entityId, setFocus } = useFocus();
+
+  // arriving from an answer or a claim: mark the sentence it was checked against
+  useEffect(() => {
+    if (at && at.end > at.start && at.end <= doc.text.length) {
+      setFocus({ span: { documentId: doc.id, text: doc.text.slice(at.start, at.end), start: at.start, end: at.end } });
+    }
+    // once per arrival; setFocus changes identity with every focus update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id, at?.start, at?.end]);
   const evidenceRef = useRef<HTMLSpanElement>(null);
 
   const evidence = useMemo(() => {

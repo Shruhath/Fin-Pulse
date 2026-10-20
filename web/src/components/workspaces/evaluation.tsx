@@ -11,6 +11,7 @@ const TASK: Record<MetricRow["task"], string> = {
   sentiment: "Entity-level sentiment",
   events: "Event extraction",
   summaries: "Grounded summaries",
+  qa: "Question answering (silver questions generated from the corpus)",
 };
 
 const METRIC_LABEL: Record<string, string> = {
@@ -29,6 +30,14 @@ const METRIC_LABEL: Record<string, string> = {
   rouge2: "ROUGE-2",
   contradicted: "contradicted",
   skipped: "skipped",
+  hitAt8Entity: "hit@8, company named",
+  hitAt8Amount: "hit@8, amount only",
+  answered: "answered",
+  claimsEntailed: "claims supported",
+  claimsContradicted: "claims contradicted",
+  abstainAbsent: "abstains, absent company",
+  abstainOfftopic: "abstains, off topic",
+  medianSeconds: "median seconds",
   linkAcc: "link acc.",
   typeF1: "type F1",
   argF1: "argument F1",
