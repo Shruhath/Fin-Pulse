@@ -83,6 +83,13 @@ def matcher_for(session: Session) -> AliasMatcher:
     return matcher
 
 
+def _premise(p: Passage) -> str:
+    """The sentence with its filing's title in front. The title names the party, which "the Noticee" or
+    "the Corporate Debtor" in the sentence does not; on the silver questions this lifted the share of
+    claims NLI confirms from 0.32 to 0.51 (docs/BACKEND.md). The reader is still shown the bare sentence."""
+    return f"{p.title}. {p.text}"
+
+
 def verify_claims(
     judge: Judge | None, drafts: list[ClaimDraft], passages: list[Passage]
 ) -> list[VerifiedClaim]:
@@ -97,7 +104,7 @@ def verify_claims(
             first = by_id[cited[0]] if cited else None
             out.append(VerifiedClaim(draft.text, "unverified", None, None, first, cited))
             continue
-        probs = judge.predict([(by_id[i].text, draft.text) for i in ids])
+        probs = judge.predict([(_premise(by_id[i]), draft.text) for i in ids])
         entail_at, contra_at = int(np.argmax(probs[:, 0])), int(np.argmax(probs[:, 2]))
         label = decide(float(probs[entail_at, 0]), float(probs[contra_at, 2]))
         chosen = contra_at if label == "contradicted" else entail_at
@@ -215,6 +222,13 @@ def answer_question(
             return counts + suffix
 
         stage("verify", verify_stage)
+        if rt.judge is not None and out.claims and not any(c.verification == "entailed" for c in out.claims):
+            # the draft stays visible, contradicted claims included, but it is not presented as an answer
+            out.abstained = True
+            out.reason = (
+                "No claim in the draft answer could be confirmed by a filing, "
+                "so it is not offered as an answer."
+            )
     out.seconds = round(time.monotonic() - started, 2)
     return out
 

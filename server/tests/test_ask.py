@@ -86,8 +86,10 @@ def _seed(db):
 class AnswerLlm:
     """Cites the first evidence sentence, or declines when told the question is unanswerable."""
 
-    def __init__(self, decline=False, bad_first=False):
-        self.decline, self.bad_first, self.calls = decline, bad_first, 0
+    def __init__(
+        self, decline=False, bad_first=False, claim="SEBI imposed a penalty of Rs. 4,00,000 on Raga."
+    ):
+        self.decline, self.bad_first, self.claim, self.calls = decline, bad_first, claim, 0
 
     def chat(self, model, system, user, *, schema=None, num_predict=1024):
         self.calls += 1
@@ -98,9 +100,7 @@ class AnswerLlm:
         first = int(user.split("[S")[1].split("]")[0])
         body = {
             "answerable": True,
-            "claims": [
-                {"text": "SEBI imposed a penalty of Rs. 4,00,000 on Raga.", "sources": [first, 99999999]}
-            ],
+            "claims": [{"text": self.claim, "sources": [first, 99999999]}],
         }
         return Reply(json.dumps(body), model, 10, 1, 1.0)
 
@@ -256,10 +256,19 @@ def test_without_a_model_server_the_retrieved_sentences_are_still_shown(db):
     assert out.abstained and out.passages and "not running" in out.reason
 
 
+def test_a_draft_no_filing_confirms_is_shown_but_not_offered_as_an_answer(db):
+    _seed(db)
+    llm = AnswerLlm(claim="Raga Securities owes a fine of Rs. 5,00,000 to the Reserve Bank for tax evasion.")
+    out = answer_question(db, "penalty on Raga Securities", _runtime(llm, FakeJudge()))
+    assert out.abstained and "could be confirmed" in out.reason
+    assert out.claims and all(c.verification != "entailed" for c in out.claims)  # still on screen
+
+
 def test_without_an_nli_model_claims_stay_unverified(db):
     _seed(db)
     out = answer_question(db, "penalty on Raga Securities", _runtime(AnswerLlm(), None))
     assert [c.verification for c in out.claims] == ["unverified"] and out.claims[0].entail is None
+    assert not out.abstained  # nothing was checked, so nothing is withheld
 
 
 # ------------------------------------------------------------------ API and worker

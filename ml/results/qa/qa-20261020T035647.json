@@ -1,0 +1,86 @@
+{
+  "git_sha": "53ef3c7f12fcb621d96fa8454c22247d7d0f7a8e",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "prompt_version": "qa-v1",
+  "questions": {
+    "entity": 20,
+    "amount": 20,
+    "absent": 20,
+    "offtopic": 20
+  },
+  "system": {
+    "hitAt8Entity": 1.0,
+    "hitAt8Amount": 0.35,
+    "answered": 0.575,
+    "claimsEntailed": 0.5057,
+    "claimsContradicted": 0.2069,
+    "entailedEntity": 0.6522,
+    "entailedAmount": 0.3415,
+    "abstainAbsent": 1.0,
+    "abstainOfftopic": 0.85,
+    "n": 80.0
+  },
+  "baseline": {
+    "hitAt8Entity": 0.95,
+    "hitAt8Amount": 0.35,
+    "n": 80.0
+  },
+  "examples": [
+    {
+      "kind": "entity",
+      "text": "Why was Yash Jewellery Private Limited admitted into insolvency resolution?"
+    },
+    {
+      "kind": "entity",
+      "text": "Why was UEE Electrical Engineers Private Limited admitted into insolvency resolution?"
+    },
+    {
+      "kind": "entity",
+      "text": "Why was Nandanam Tiles and Sanitaries Private Limited admitted into insolvency resolution?"
+    },
+    {
+      "kind": "entity",
+      "text": "Why was K V Developers Private Limited admitted into insolvency resolution?"
+    },
+    {
+      "kind": "amount",
+      "text": "Which company was penalised Rs. 43,97,250 by SEBI?"
+    },
+    {
+      "kind": "amount",
+      "text": "Which company was penalised Rs. 5,00,000 by SEBI?"
+    },
+    {
+      "kind": "amount",
+      "text": "Which company was penalised Rs. 16,03,508 by SEBI?"
+    },
+    {
+      "kind": "absent",
+      "text": "What penalty did SEBI impose on Loyal Textile Mills Limited?"
+    },
+    {
+      "kind": "absent",
+      "text": "What penalty did SEBI impose on Rupa and Company Limited?"
+    },
+    {
+      "kind": "absent",
+      "text": "What penalty did SEBI impose on Nelcast Limited?"
+    },
+    {
+      "kind": "offtopic",
+      "text": "What is the share price target for Godrej Consumer Products Limited?"
+    },
+    {
+      "kind": "offtopic",
+      "text": "What is the share price target for Motilal Oswal Financial Services Limited?"
+    },
+    {
+      "kind": "offtopic",
+      "text": "What is the share price target for Binani Cement Ltd.?"
+    },
+    {
+      "kind": "offtopic",
+      "text": "What is the share price target for Bajaj Corp Ltd.?"
+    }
+  ]
+}

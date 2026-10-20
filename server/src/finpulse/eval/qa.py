@@ -5,7 +5,7 @@ labelled that way. Four kinds of question:
 
   * entity  - "What action did SEBI take against X?" for a company with a rule-extracted event;
               relevant documents are those where X is a title party or has an event of that type;
-  * amount  - "Which company was penalised ₹5 lakh by SEBI?"; relevant documents are the SEBI
+  * amount  - "Which company was penalised Rs. 4,39,725 by SEBI?"; relevant documents are the SEBI
               penalty events with that exact amount (no company is named, so retrieval has to find it);
   * absent  - the same question about a listed company no collected filing mentions: the right
               response is an abstention;
@@ -25,7 +25,6 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
-from statistics import median
 from typing import Any
 
 from sqlalchemy import select
@@ -36,7 +35,6 @@ from finpulse.db.models import Document, Entity, EvalResult, Event, Mention
 from finpulse.pipeline.ask import Runtime, answer_question
 from finpulse.pipeline.link import NER_TITLE
 from finpulse.pipeline.runs import recorded_run
-from finpulse.preprocess.normalize import format_inr
 from finpulse.qa.answer import PROMPT_VERSION
 from finpulse.qa.retrieve import IN_CORPUS
 
@@ -58,6 +56,17 @@ class Question:
 def _pick(rows: list[Any], key: Any, n: int) -> list[Any]:
     """A deterministic sample: rows ordered by a hash of their key, so one corpus gives one question set."""
     return sorted(rows, key=lambda r: hashlib.sha256(str(key(r)).encode()).hexdigest())[:n]
+
+
+def _grouped(amount: Decimal) -> str:
+    """Rupees the way an order writes them, with lakh grouping: 439725 -> "4,39,725"."""
+    whole = str(int(amount))
+    head, tail = whole[:-3], whole[-3:]
+    groups: list[str] = []
+    while head:
+        groups.insert(0, head[-2:])
+        head = head[:-2]
+    return ",".join([*groups, tail])
 
 
 def build_questions(session: Session, *, n_each: int = 20) -> list[Question]:
@@ -100,7 +109,7 @@ def build_questions(session: Session, *, n_each: int = 20) -> list[Question]:
             )
         )
         questions.append(
-            Question(f"Which company was penalised {format_inr(Decimal(amount))} by SEBI?", "amount", docs)
+            Question(f"Which company was penalised Rs. {_grouped(Decimal(amount))} by SEBI?", "amount", docs)
         )
 
     mentioned = select(Mention.entity_id).where(Mention.entity_id.is_not(None)).distinct()
@@ -131,8 +140,12 @@ class Scores:
     claims: dict[str, int] = field(
         default_factory=lambda: {"entailed": 0, "contradicted": 0, "unverified": 0}
     )
+    by_kind: dict[str, dict[str, int]] = field(default_factory=dict)
     abstained: dict[str, list[float]] = field(default_factory=dict)
-    seconds: list[float] = field(default_factory=list)
+
+
+def _share(tally: dict[str, int] | None) -> float:
+    return round(tally["entailed"] / tally["total"], 4) if tally and tally["total"] else 0.0
 
 
 def _rate(values: list[float]) -> float:
@@ -149,13 +162,15 @@ def evaluate_questions(
     index = rt.index(session)
     for q in questions:
         outcome = answer_question(session, q.text, rt)
-        system.seconds.append(outcome.seconds)
         retrieved = {p.doc_id for p in outcome.passages}
         if q.kind in {"entity", "amount"}:
             system.hits.setdefault(q.kind, []).append(float(bool(retrieved & q.relevant)))
             system.answered.append(float(not outcome.abstained))
+            tally = system.by_kind.setdefault(q.kind, {"entailed": 0, "total": 0})
             for claim in outcome.claims:
                 system.claims[claim.verification] += 1
+                tally["total"] += 1
+                tally["entailed"] += claim.verification == "entailed"
             plain = retrieve(session, index, q.text, vector=None, doc_filter=None)
             baseline.hits.setdefault(q.kind, []).append(float(bool({p.doc_id for p in plain} & q.relevant)))
         else:
@@ -168,9 +183,10 @@ def evaluate_questions(
         "answered": _rate(system.answered),
         "claimsEntailed": round(system.claims["entailed"] / judged, 4) if judged else 0.0,
         "claimsContradicted": round(system.claims["contradicted"] / judged, 4) if judged else 0.0,
+        "entailedEntity": _share(system.by_kind.get("entity")),
+        "entailedAmount": _share(system.by_kind.get("amount")),
         "abstainAbsent": _rate(system.abstained.get("absent", [])),
         "abstainOfftopic": _rate(system.abstained.get("offtopic", [])),
-        "medianSeconds": round(median(system.seconds), 2) if system.seconds else 0.0,
         "n": float(len(questions)),
     }
     base = {
