@@ -12,16 +12,17 @@ import { VerifiedSummary } from "@/components/tiles/verified-summary";
 import { Empty } from "@/components/ui/states";
 import { useWM } from "@/components/wm/wm";
 import { Workspace } from "@/components/wm/workspace";
-import type { DocumentDetail, Job, JobStage, StageKey } from "@/lib/api/types";
+import type { components } from "@/lib/api/schema";
+import type { DocumentDetail, Job, JobStage, SourceKind, StageKey } from "@/lib/api/types";
 
 const STAGES: { key: StageKey; label: string; how: string }[] = [
   { key: "ingest", label: "ingest", how: "fetch, hash, store raw" },
-  { key: "parse", label: "parse", how: "PyMuPDF text layer, OCR fallback" },
-  { key: "entities", label: "entities", how: "NER + alias resolution" },
+  { key: "parse", label: "parse", how: "PDF text layer, Tesseract for scanned pages" },
+  { key: "entities", label: "entities", how: "gazetteer match + alias resolution" },
   { key: "sentiment", label: "sentiment", how: "FinBERT, entity-marked" },
   { key: "events", label: "events", how: "Qwen 2.5 7B, schema JSON" },
   { key: "summary", label: "summary", how: "Llama 3.1 8B, grounded" },
-  { key: "verify", label: "verify", how: "BM25 + bge-m3, DeBERTa NLI" },
+  { key: "verify", label: "verify", how: "BM25 + bge-base, DeBERTa NLI" },
 ];
 
 // Preview-only stage timings; a real run reports its own.
@@ -29,9 +30,32 @@ const PREVIEW_MS: Record<StageKey, number> = { ingest: 380, parse: 640, entities
 
 const API = process.env.NEXT_PUBLIC_FINPULSE_API_URL ?? "http://127.0.0.1:8000";
 
-type Input = { kind: "text"; text: string } | { kind: "url"; url: string } | { kind: "pdf"; file: File };
+type Input = ({ kind: "text"; text: string } | { kind: "url"; url: string } | { kind: "pdf"; file: File }) & { source: SourceKind };
+
+type AnalyzeRequest = components["schemas"]["AnalyzeRequest"];
+
+// The rule-based event extractors key on the publisher, so the user says which one a document is from.
+const SOURCES: { value: SourceKind; label: string }[] = [
+  { value: "NEWS", label: "News or other" },
+  { value: "SEBI", label: "SEBI order" },
+  { value: "NCLT", label: "NCLT order" },
+  { value: "RBI", label: "RBI press release" },
+  { value: "BSE", label: "BSE announcement" },
+  { value: "NSE", label: "NSE announcement" },
+];
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+/** The API's own explanation of a refusal (FastAPI sends it as `detail`), else the bare status. */
+async function problem(res: Response): Promise<string> {
+  try {
+    const { detail } = (await res.json()) as { detail?: unknown };
+    if (typeof detail === "string") return detail;
+  } catch {
+    /* not JSON */
+  }
+  return `The API answered ${res.status}.`;
+}
 
 const idle = (): JobStage[] => STAGES.map(({ key }) => ({ key, status: "pending", ms: null, note: null }));
 
@@ -81,24 +105,30 @@ export function AnalyzeWorkspace({ preview, sample }: { preview: boolean; sample
       setRunning(true);
       setStages(idle());
       try {
-        const res =
-          input.kind === "pdf"
-            ? await fetch(`${API}/api/analyze`, { method: "POST", body: (() => { const f = new FormData(); f.append("file", input.file); return f; })() })
-            : await fetch(`${API}/api/analyze`, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify(input.kind === "text" ? { text: input.text } : { url: input.url }),
-              });
-        if (!res.ok) throw new Error(`The API answered ${res.status}.`);
-        const { job_id } = (await res.json()) as { job_id: string };
-        notify({ app: "pipeline", title: "Job queued", body: `Job ${job_id.slice(0, 8)}`, tone: "info" });
+        let res: Response;
+        if (input.kind === "pdf") {
+          const form = new FormData();
+          form.append("file", input.file);
+          form.append("source", input.source);
+          res = await fetch(`${API}/api/analyze/file`, { method: "POST", body: form });
+        } else {
+          const body: AnalyzeRequest = input.kind === "text" ? { text: input.text, source: input.source } : { url: input.url, source: input.source };
+          res = await fetch(`${API}/api/analyze`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+        }
+        if (!res.ok) throw new Error(await problem(res));
+        const { jobId } = (await res.json()) as components["schemas"]["AnalyzeAccepted"];
+        notify({ app: "pipeline", title: "Job queued", body: `Job ${jobId.slice(0, 8)}`, tone: "info" });
         for (;;) {
           await new Promise((r) => setTimeout(r, 1000));
-          const job = (await (await fetch(`${API}/api/jobs/${job_id}`)).json()) as Job;
+          const polled = await fetch(`${API}/api/jobs/${jobId}`);
+          if (!polled.ok) throw new Error(await problem(polled));
+          const job = (await polled.json()) as Job;
           setStages(job.stages);
-          if (job.status === "failed") throw new Error(job.stages.find((s) => s.status === "failed")?.note ?? "A stage failed.");
+          if (job.status === "failed") throw new Error(job.error ?? job.stages.find((s) => s.status === "failed")?.note ?? "A stage failed.");
           if (job.status === "done" && job.documentId) {
-            setResult((await (await fetch(`${API}/api/documents/${job.documentId}`)).json()) as DocumentDetail);
+            const doc = await fetch(`${API}/api/documents/${job.documentId}`);
+            if (!doc.ok) throw new Error(await problem(doc));
+            setResult((await doc.json()) as DocumentDetail);
             notify({ app: "pipeline", title: "Analysis complete", tone: "ok" });
             break;
           }
@@ -170,12 +200,13 @@ function InputPane({
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [source, setSource] = useState<SourceKind>("NEWS");
   const ready = tab === "text" ? text.trim().length > 40 : tab === "url" ? /^https?:\/\/\S+$/.test(url) : !!file;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!ready || preview) return;
-    onRun(tab === "text" ? { kind: "text", text } : tab === "url" ? { kind: "url", url } : { kind: "pdf", file: file! });
+    onRun(tab === "text" ? { kind: "text", text, source } : tab === "url" ? { kind: "url", url, source } : { kind: "pdf", file: file!, source });
   };
 
   return (
@@ -240,6 +271,23 @@ function InputPane({
           <input id="an-pdf" type="file" accept="application/pdf" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </Tabs.Content>
       </Tabs.Root>
+      <div>
+        <label htmlFor="an-source" className="mb-1.5 block font-mono text-2xs text-ink-3">
+          document type
+        </label>
+        <select
+          id="an-source"
+          value={source}
+          onChange={(e) => setSource(e.target.value as SourceKind)}
+          className="h-8 w-full border border-line bg-surface-2 px-2 font-mono text-xs text-ink outline-none focus:border-ring"
+        >
+          {SOURCES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
       {preview && (
         <p className="border border-warn/40 bg-warn-weak px-3 py-2 text-xs text-warn">
           Preview mode cannot analyse your own input: no pipeline is connected. Run the bundled sample to see the flow.
