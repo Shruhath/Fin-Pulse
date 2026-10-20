@@ -3,7 +3,8 @@
 A token trie over normalised alias tokens gives longest-match-wins scanning in one pass. This
 plays the role of a spaCy EntityRuler without the dependency, and its matches double as silver
 training data. Precision guards: every word of a match must start with a capital letter in the
-source text, and short or single-word aliases need to be written in capitals or title case.
+source text, short or single-word aliases need to be written in capitals or title case, and a bare
+ticker is not a mention of its company when more capitalised words follow it ("ACC Energy Storage").
 """
 
 from __future__ import annotations
@@ -21,6 +22,10 @@ GENERIC_ALIASES = frozenset(
     "page apollo century india indian bank national general united global premier prime star royal "
     "modern universal diamond golden sun pioneer advance alpha delta omega vision value".split()
 )
+
+
+# a ticker-like alias: one word of capitals, five letters at most
+_TICKER_MAX = 5
 
 
 @dataclass(slots=True)
@@ -72,6 +77,19 @@ class AliasMatcher:
                 best = (j, node)
         return best
 
+    @staticmethod
+    def _continues_name(text: str, toks: list[Token], stop: int) -> bool:
+        """Does a capitalised word, not a legal suffix, follow token `stop - 1` on the same line?"""
+        if stop >= len(toks):
+            return False
+        nxt = toks[stop]
+        return (
+            text[toks[stop - 1].end : nxt.start].isspace()
+            and nxt.text[0].isupper()
+            and nxt.norm not in LEGAL_SUFFIXES
+            and nxt.norm not in _CONNECTORS
+        )
+
     def find(self, text: str) -> list[Match]:
         """Non-overlapping matches in text order, longest alias first."""
         toks = tokenize(text)
@@ -85,7 +103,8 @@ class AliasMatcher:
             stop, node = best
             matched = toks[i:stop]
             short = len(matched) == 1 and len(matched[0].text) <= 3 and not matched[0].text.isupper()
-            if short or not self._capitalised(matched):
+            ticker = len(matched) == 1 and matched[0].text.isupper() and len(matched[0].text) <= _TICKER_MAX
+            if short or not self._capitalised(matched) or (ticker and self._continues_name(text, toks, stop)):
                 i += 1
                 continue
             end = stop

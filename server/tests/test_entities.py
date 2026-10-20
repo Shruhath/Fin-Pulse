@@ -62,6 +62,19 @@ def test_matcher_takes_a_following_legal_suffix_into_the_span():
     assert f.surface == "Yes Bank Limited"
 
 
+def test_a_bare_ticker_followed_by_more_capitalised_words_is_part_of_a_longer_name():
+    m = AliasMatcher()
+    m.add("ACC", 1)
+
+    def surfaces(text):
+        return [x.surface for x in m.find(text)]
+
+    assert surfaces("REL held shares in ACC Energy Storage Pvt. Ltd. until 2025.") == []
+    assert surfaces("The order names ACC Limited and others.") == ["ACC Limited"]
+    assert surfaces("The shares of ACC. The company replied.") == ["ACC"]
+    assert surfaces("Shares of ACC rose on Monday.") == ["ACC"]
+
+
 def test_matcher_prefers_the_longest_alias():
     (f,) = _matcher().find("Tata Motors Ltd announced results.")
     assert f.entity_ids == (2,)
