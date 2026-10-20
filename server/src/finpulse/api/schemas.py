@@ -314,6 +314,12 @@ class AskPassage(Evidence):
     cited: bool
 
 
+class Transcription(Api):
+    text: str
+    seconds: float
+    model: str
+
+
 class AskAnswer(Api):
     question: str
     abstained: bool
@@ -358,6 +364,7 @@ class Health(Api):
     gpu: str | None
     tesseract: str | None
     sentiment_model: str | None
+    asr_model: str | None  # the speech model when it is installed, else null
     queued_jobs: int
 
 

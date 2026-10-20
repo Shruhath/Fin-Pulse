@@ -83,6 +83,13 @@ export const getEval = () =>
 export const getSearchIndex = () =>
   isPreview() ? Promise.resolve(local<SearchIndex>(preview.previewSearchIndex())) : get<SearchIndex>("/api/search/index");
 
+/** The name of the local speech model when it is installed, else null; null in preview mode as well. */
+export async function getVoiceModel(): Promise<string | null> {
+  if (isPreview()) return null;
+  const health = await get<{ asrModel: string | null }>("/api/health");
+  return health.state === "ok" ? health.data.asrModel : null;
+}
+
 /** Questions to try, built from the newest extracted events; none in preview mode, which has no pipeline. */
 export const getAskSuggestions = () =>
   isPreview() ? Promise.resolve(local<string[]>([])) : get<string[]>("/api/ask/suggestions");

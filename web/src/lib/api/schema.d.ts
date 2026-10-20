@@ -353,6 +353,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transcribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transcribe
+         * @description Transcribe a PCM WAV recording (16 kHz mono is what the web app sends, up to 60 seconds).
+         *
+         *     Nothing is stored: the audio is decoded in memory and dropped. A recording with no speech in it
+         *     returns an empty `text` instead of a guess.
+         */
+        post: operations["transcribe_api_transcribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/wallpaper": {
         parameters: {
             query?: never;
@@ -768,6 +791,8 @@ export interface components {
         };
         /** Health */
         Health: {
+            /** Asrmodel */
+            asrModel: string | null;
             /** Database */
             database: boolean;
             /** Gpu */
@@ -1083,6 +1108,15 @@ export interface components {
             scope: "document" | "entity";
             /** Subject */
             subject?: string | null;
+        };
+        /** Transcription */
+        Transcription: {
+            /** Model */
+            model: string;
+            /** Seconds */
+            seconds: number;
+            /** Text */
+            text: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1691,6 +1725,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transcribe_api_transcribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "audio/wav": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transcription"];
                 };
             };
         };

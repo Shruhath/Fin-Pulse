@@ -35,5 +35,6 @@ done
 curl -sf http://127.0.0.1:8000/api/health || { echo "the API did not come up; see data/logs/api.log" >&2; exit 1; }
 echo
 echo "API http://127.0.0.1:8000   web http://localhost:3000   logs data/logs/"
-cd web
-bun run dev
+# in the background and waited on, so a plain TERM (not only Ctrl-C) reaches the trap and stops everything
+(cd web && exec bun run dev) &
+wait $!

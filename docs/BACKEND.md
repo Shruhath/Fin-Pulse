@@ -21,6 +21,7 @@ uv run finpulse serve                                   # API on :8000, docs at 
 uv run finpulse worker                                  # job queue worker for /api/analyze and /api/ask
 uv run finpulse ask "What action did SEBI take against Rajesh Exports Limited?"
 uv run finpulse ask --eval                              # silver question-answering evaluation
+uv run python ../scripts/fetch_models.py asr            # the speech model for spoken questions (290 MB, once)
 uv run pytest && uv run ruff check . && uv run ruff format --check .
 ```
 
@@ -50,6 +51,7 @@ data, which is the fallback if the backend cannot be run. Models load from the l
 | gold, eval, export | `gold/`, `eval/`, `export/` | frozen passages, Label Studio round trip, agreement, scores against gold, the DataPort package |
 | orchestration | `pipeline/batch.py` | phases in the order that never puts two models on the GPU together |
 | live path | `pipeline/analyze.py`, `pipeline/jobs.py`, `pipeline/worker.py` | one document through every stage, progress on the job row; encoders on the CPU, LLM stages only when the models are available. A document analysed this way is flagged `is_submission` (migration 0006): readable by id, never part of the corpus aggregates, events, search or the window the overview is anchored on |
+| voice | `asr/`, `api/routers/voice.py` | a spoken question to text: Whisper (`whisper-base.en`) on the CPU from the local cache, prompted with the companies the corpus mentions most; the browser records and converts to 16 kHz WAV |
 | ask | `qa/`, `pipeline/ask.py`, `eval/qa.py` | a question about the corpus: the companies and publishers it names narrow a BM25 + dense search over every sentence (RRF), Llama writes claims that cite numbered sentences or declines, NLI judges each claim; the answer is the job's `result` |
 
 **GPU budget.** 8 GB, so one model at a time. Encoders (FinBERT, the embedder, NLI) run in their own phase and
@@ -162,6 +164,31 @@ now uses the lakh-grouped rupees an order writes. Latency on the RTX 5060 is 2 t
 cache makes a repeated question instant, so the evaluation does not report latency. One question in 80 made
 the model return JSON that stayed invalid after three attempts and ended as a no-answer.
 
+**Spoken questions (20 Oct 2026).** The chat accepts a spoken question. The browser records (it stops by itself
+after a pause), converts the audio to 16 kHz mono WAV and posts it to `POST /api/transcribe`; the text lands in
+the question box to be checked and sent, or is sent at once if "send the question when I stop talking" is
+ticked. The browser's own speech recognition is not used because it streams audio to a third party; this keeps
+to the rule that models run locally, and the recording is decoded in memory and never written to disk.
+
+Whisper is told what is being asked: each request carries a prompt that sounds like the questions ("A question
+about SEBI, NCLT and RBI filings, such as a penalty of Rs. 25 lakh or Rs. 4,39,725") followed by the spoken
+forms of 70 companies (the 25 with the newest extracted events, so every suggested question can be said, then
+the 45 in the most filings). Three guards keep a poor recording from becoming a confident wrong question:
+a recording whose peak is below -40 dBFS is not sent to the model, a transcript that loops or reads the prompt
+back is dropped, and output length is capped by the audio's duration.
+
+On six questions about this corpus spoken by an offline text-to-speech voice (Piper, US English), each heard
+three ways (16 kHz, a 22 kHz file resampled by the server, and a 24 kbit/s Opus round trip as the browser's
+recorder produces), 18 utterances and 171 words: word error rate 0.205 without the prompt and 0.035 with it,
+about 1 s per question on the CPU, 3 to 5 s more on the first request while the model loads. Driven through
+the real page with a fake microphone playing the same six questions, two words were wrong in 57 ("Why" heard
+as "Hawaii" when the first syllable was clipped, "take" as "tick"). The caveat that matters: this is synthetic
+speech in one accent. Indian-accented speech and a real microphone have not been measured, and a company that is
+in neither group of 70 gets no help from the prompt (the text is editable before it is sent for that reason;
+`FINPULSE_ASR_MODEL=openai/whisper-small.en` is slower and better with accents and names). Listening to an answer
+(a "listen" button) uses the operating system's voice and only appears when the browser offers a voice that runs
+on this machine; none was available here, so that button is untested.
+
 ## API contract
 
 `server/openapi.json` is the contract (CI fails when it is out of date: `uv run finpulse openapi`).
@@ -181,6 +208,7 @@ returns empty lists.
 | `POST /api/analyze`, `/api/analyze/file` | text, URL or PDF/HTML upload; returns `{jobId}`; 429 when 50 jobs are queued |
 | `GET /api/jobs/{id}` | status and seven stages with timings and notes |
 | `POST /api/ask` | `{question}` (3 to 500 characters); returns `{jobId}`; the worker answers it |
+| `POST /api/transcribe` | a PCM WAV recording (the web app sends 16 kHz mono, up to 60 s) in, `{text, seconds, model}` out; nothing is stored; 415 for other formats, 503 when the speech model is not installed |
 | `GET /api/ask/{id}`, `/api/ask/suggestions` | status, three stages (retrieve, answer, verify) and the answer with claims, verdicts, evidence offsets and the sentences read; suggestions are built from the newest extracted events |
 | `GET /api/health`, `/api/pipeline/config` | database, Ollama, GPU, Tesseract, active model |
 

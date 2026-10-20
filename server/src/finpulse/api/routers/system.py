@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from finpulse.api import queries as q
 from finpulse.api import schemas as s
 from finpulse.api.deps import get_db
+from finpulse.asr.whisper import installed
 from finpulse.core.settings import get_settings
 from finpulse.db.models import Job, Run
 from finpulse.parse import tesseract_version
@@ -68,6 +69,7 @@ def health(db: Db) -> s.Health:
         gpu=gpu_name(),
         tesseract=tesseract_version(),
         sentiment_model=q.active_model(db) if database else None,
+        asr_model=get_settings().asr_model if installed() else None,
         queued_jobs=queued or 0,
     )
 
