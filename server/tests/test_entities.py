@@ -138,6 +138,15 @@ def test_fuzzy_does_not_merge_a_name_with_an_extended_one():
          [("subject", "person", "Simran Sunil Raheja")]),
         ("Order in respect of Bubna Stock Broking Services Ltd., (now known as Sunbright Stock Broking Ltd.)",
          [("subject", "company", "Bubna Stock Broking Services Ltd")]),
+        ("Adjudication Order in the matter of suspected insider trading in the scrip of Wipro Ltd",
+         [("matter", "company", "Wipro Ltd")]),
+        ("Order in respect of Himadri Acharya Bhaduri and Atul Sharma in the matter of in the matter of "
+         "M/s. Action Financial Services (India) Ltd.",
+         [("subject", "person", "Himadri Acharya Bhaduri"), ("subject", "person", "Atul Sharma"),
+          ("matter", "company", "Action Financial Services (India) Ltd")]),
+        ("Order in respect of Prakash Nahata and Co", [("subject", "company", "Prakash Nahata and Co")]),
+        ("Order in the matter of Dipchand Development Co. Ltd.in the matter of SCORES Authentication",
+         [("subject", "company", "Dipchand Development Co. Ltd")]),
     ],
 )  # fmt: skip
 def test_title_subjects(title, expected):

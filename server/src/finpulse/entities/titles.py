@@ -17,7 +17,10 @@ _LEAD_IN = re.compile(
     r"with\s+respect\s+to|consent\s+order\s+for|order\s+for)\s+|\border\s*[-–:]\s*",
     _I,
 )
-_SECOND_PARTY = re.compile(r"\s+(?:in\s+(?:the\s+)?matter\s+of|in\s+the\s+scrip\s+of|in\s+re)\s+", _I)
+_SECOND_PARTY = re.compile(
+    r"(?:\s+|(?<=\.))(?:in\s+(?:the\s+)?matter\s+of|in\s+the\s+scrip\s+of|in\s+re)\s+", _I
+)  # also "Ltd.in the matter of", where the space is missing
+_REPEATED_LEAD = re.compile(r"^(?:in\s+(?:the\s+)?matter\s+of\s+)+", _I)
 _PERSON_IN_COMPANY = re.compile(r"^((?i:shri|smt\.?|mr\.?|mrs\.?|ms\.?|late|sri)\s+.+?)\s+in\s+([A-Z].+)$")
 _LIST_MARKER = re.compile(r"^\(?(?:[ivx]{1,4}|[a-z]|\d{1,2})\)\s*", _I)
 _FILLER = re.compile(
@@ -41,7 +44,7 @@ _TAIL = re.compile(
 _NOT_A_PARTY = (
     "certain", "various", "the following", "entities", "noticees", "promoters", "persons",
     "dealing", "trading", "illiquid", "alleged", "non-", "failure", "violation", "front",
-    "the scrip", "scrip", "self",
+    "the scrip", "scrip", "self", "suspected", "insider",
 )  # fmt: skip
 _MULTI = re.compile(r",\s*(?:and\s+)?|\s+and\s+(?=(?:shri|smt|sri|mr|mrs|ms|m/s|late)\b)", _I)
 _ROLE_WORD = re.compile(
@@ -58,6 +61,8 @@ _COMPANY_WORD = re.compile(
     _I,
 )
 
+
+_AND = re.compile(r"\s+and\s+", _I)
 
 _MAX_PARTIES = 6
 _MAX_NAME = 120
@@ -111,6 +116,14 @@ def _rbi_subjects(text: str) -> list[TitleSubject]:
     return []
 
 
+def _split_people(chunk: str) -> list[str]:
+    """Two people joined by "and" are two parties; "Kamlesh Jain and Co" is one firm."""
+    parts = _AND.split(chunk)
+    if len(parts) > 1 and not _COMPANY_WORD.search(chunk) and all(2 <= len(p.split()) <= 4 for p in parts):
+        return parts
+    return [chunk]
+
+
 def title_subjects(title: str, source: str | None = None) -> list[TitleSubject]:
     """Every party the title names, the one the order is against first."""
     text = " ".join(title.split())
@@ -126,13 +139,15 @@ def title_subjects(title: str, source: str | None = None) -> list[TitleSubject]:
         pieces = [m.group(1), m.group(2)]
     out: list[TitleSubject] = []
     for i, piece in enumerate(pieces[:2]):
+        piece = _REPEATED_LEAD.sub("", piece)  # "in the matter of in the matter of X"
         role = "subject" if i == 0 else "matter"
         for chunk in _MULTI.split(piece)[:_MAX_PARTIES]:
             if not chunk or chunk.startswith("(") or _ROLE_WORD.match(chunk.strip()):
                 continue
-            party = _party(chunk, role)
-            if party and len(party.name) <= _MAX_NAME:
-                out.append(party)
+            for part in _split_people(chunk):
+                party = _party(part, role)
+                if party and len(party.name) <= _MAX_NAME:
+                    out.append(party)
     return out
 
 
