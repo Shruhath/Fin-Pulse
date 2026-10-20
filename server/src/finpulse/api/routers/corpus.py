@@ -29,11 +29,17 @@ def status(db: Db) -> s.CorpusStatus:
 @router.get("/overview", response_model=s.Overview)
 def overview(db: Db, window: WindowParam = "30d") -> s.Overview:
     source_rows = db.execute(
-        select(Document.source_kind, func.count()).group_by(Document.source_kind).order_by(desc(func.count()))
+        select(Document.source_kind, func.count())
+        .where(q.IN_CORPUS)
+        .group_by(Document.source_kind)
+        .order_by(desc(func.count()))
     ).all()
     start = q.window_start(q.anchor_date(db), window)
     docs_stmt = (
-        select(Document).order_by(desc(Document.published_at).nulls_last(), desc(Document.id)).limit(30)
+        select(Document)
+        .where(q.IN_CORPUS)
+        .order_by(desc(Document.published_at).nulls_last(), desc(Document.id))
+        .limit(30)
     )
     if start is not None:
         docs_stmt = docs_stmt.where(Document.published_at >= start)
@@ -130,13 +136,15 @@ def search_index(db: Db) -> s.SearchIndex:
     company_rows = db.execute(
         select(Entity.slug, Entity.canonical_name, Entity.nse_symbol)
         .join(Mention, Mention.entity_id == Entity.id)
-        .where(Entity.kind.in_(("company", "bank")))
+        .join(Document, Document.id == Mention.doc_id)
+        .where(Entity.kind.in_(("company", "bank")), q.IN_CORPUS)
         .group_by(Entity.id)
         .order_by(desc(mentions))
         .limit(800)
     ).all()
     docs = db.execute(
         select(Document.id, Document.title, Document.source_kind)
+        .where(q.IN_CORPUS)
         .order_by(desc(Document.published_at).nulls_last(), desc(Document.id))
         .limit(500)
     ).all()

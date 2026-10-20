@@ -403,3 +403,91 @@ def test_runs_list_the_recorded_stage_executions_newest_first(client, db):
     assert [r["stage"] for r in client.get("/api/runs?stage=parse").json()] == ["parse"]
     assert [r["stage"] for r in client.get("/api/runs?status=failed").json()] == ["events-llm"]
     assert client.get("/api/runs?status=odd").status_code == 422
+
+
+def _submit(db, yes):
+    """A document analysed on request, newer than the corpus, with a mention, a score and an event."""
+    body = "Quasar zebra remarks about Yes Bank Limited were pasted in."
+    doc = Document(
+        source_kind="SEBI",
+        title="Pasted order",
+        raw_sha256="9" * 64,
+        clean_text=body,
+        n_words=len(body.split()),
+        status="analysed",
+        published_at=date(2026, 11, 1),
+        is_submission=True,
+    )
+    db.add(doc)
+    db.flush()
+    sentence = Sentence(doc_id=doc.id, idx=0, char_start=0, char_end=len(body), text=body)
+    db.add(sentence)
+    db.flush()
+    start = body.index("Yes Bank Limited")
+    mention = Mention(
+        doc_id=doc.id,
+        sentence_id=sentence.id,
+        entity_id=yes.id,
+        char_start=start,
+        char_end=start + len("Yes Bank Limited"),
+        surface="Yes Bank Limited",
+        ner_model="gazetteer-rules",
+        link_method="exact",
+        link_score=100.0,
+    )
+    db.add(mention)
+    db.flush()
+    db.add(
+        MentionSentiment(
+            mention_id=mention.id,
+            model_version="tfidf-lr@test",
+            label="positive",
+            p_pos=0.9,
+            p_neg=0.05,
+            p_neu=0.05,
+            confidence=0.9,
+        )
+    )
+    db.add(
+        Event(
+            doc_id=doc.id,
+            entity_id=yes.id,
+            type="SEBI Penalty",
+            trigger_start=0,
+            trigger_end=len(body),
+            arguments={"action": "penalty"},
+            event_date=date(2026, 11, 1),
+            extractor="llm",
+        )
+    )
+    db.flush()
+    db.execute(text("refresh materialized view entity_daily"))
+    return doc
+
+
+def test_a_submitted_document_is_readable_by_id_but_not_part_of_the_corpus(client, db):
+    yes, docs, _ = _seed(db)
+    submitted = _submit(db, yes)
+
+    overview = client.get("/api/overview?window=90d").json()
+    assert overview["asOf"] == "2026-10-10"  # the window is not dragged forward by the submission
+    assert overview["corpus"]["documents"] == 2 and overview["corpus"]["events"] == 1
+    assert overview["sources"] == [{"kind": "SEBI", "documents": 2}]
+    assert len(overview["events"]) == 1 and len(overview["filings"]) == 2
+    (entity,) = overview["entities"]
+    assert entity["mentions"] == 2 and entity["score"] == pytest.approx((0.6 - 0.7) / 2)
+
+    assert len(client.get("/api/documents").json()) == 2
+    assert len(client.get("/api/events").json()) == 1
+    assert len(client.get("/api/search/index").json()["filings"]) == 2
+    assert client.get("/api/search?q=quasar zebra").json()["filings"] == []
+    company = client.get("/api/entities/yes-bank?window=90d").json()
+    assert len(company["events"]) == 1 and len(company["mentions"]) == 2
+
+    detail = client.get(f"/api/documents/{submitted.id}")
+    assert detail.status_code == 200
+    body = detail.json()
+    assert (
+        len(body["events"]) == 1 and len(body["spans"]) == 1 and body["spans"][0]["sentiment"] == "positive"
+    )
+    assert {d.id for d in docs}.isdisjoint({submitted.id})

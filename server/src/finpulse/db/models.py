@@ -80,6 +80,9 @@ class Document(Base):
     n_pages: Mapped[int | None] = mapped_column(Integer)
     lang: Mapped[str] = mapped_column(String(8), nullable=False, server_default="en")
     ocr_used: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
+    # pasted, uploaded or fetched through /api/analyze: readable by id, but not part of the corpus the
+    # overview, company pages, events and aggregates describe
+    is_submission: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
     status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="ingested")
     minhash_cluster: Mapped[int | None] = mapped_column(Integer)
     meta: Mapped[dict[str, Any]] = mapped_column(
