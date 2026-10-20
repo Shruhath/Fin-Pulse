@@ -18,9 +18,15 @@ export function EventCard({ event, showSourceLink = true }: { event: EventRecord
         </span>
       </div>
       <div>
-        <Link href={`/companies/${event.entityId}`} className="text-md font-semibold text-ink no-underline hover:text-accent-ink">
-          {event.entityName}
-        </Link>
+        {event.entityId ? (
+          <Link href={`/companies/${event.entityId}`} className="text-md font-semibold text-ink no-underline hover:text-accent-ink">
+            {event.entityName}
+          </Link>
+        ) : (
+          <span className="text-md font-semibold text-ink-2" title="The order names a party that is not in the company gazetteer">
+            Unresolved party
+          </span>
+        )}
         <p className="mt-1 text-sm leading-snug text-ink-2">{event.headline}</p>
       </div>
       <dl className="grid grid-cols-[minmax(0,9rem)_1fr] gap-x-3 gap-y-1.5 border-t border-line pt-3 text-sm">

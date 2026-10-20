@@ -1,20 +1,25 @@
 /**
  * Response shapes served by the FinPulse API (server/src/finpulse/api).
  *
- * Hand-written until the FastAPI service exists; once it does, these are
- * replaced by types generated from /openapi.json (`bun run gen:api`), and the
- * Pydantic models become the single source of truth.
+ * Derived from the generated OpenAPI types (`bun run gen:api`), so the Pydantic models are the single
+ * source of truth: a field the API can leave null is nullable here too, and the compiler lists every
+ * place that has to cope with it. Only the closed vocabularies the UI switches on are narrowed.
  */
 
-export type SentimentLabel = "positive" | "negative" | "neutral";
+import type { components } from "./schema";
 
-export type Verification = "entailed" | "contradicted" | "unverified";
+type S = components["schemas"];
 
-export type SourceKind = "BSE" | "NSE" | "SEBI" | "RBI" | "NCLT" | "NEWS";
+export type SentimentLabel = NonNullable<S["EntityRow"]["sentiment"]>;
 
-export type Window = "7d" | "30d" | "90d";
+export type Verification = S["Claim"]["verification"];
 
-/** EDT's 11 corporate types plus the five India-specific types. */
+export type SourceKind = S["FilingItem"]["source"];
+
+/** The windows the UI offers; the API also accepts 365d and all. */
+export type Window = Extract<S["Overview"]["window"], "7d" | "30d" | "90d">;
+
+/** EDT's 11 corporate types plus the five India-specific types (server/src/finpulse/events/taxonomy.py). */
 export type EventType =
   | "Acquisition"
   | "Clinical Trial"
@@ -35,86 +40,18 @@ export type EventType =
 
 export type EventGroup = "Corporate action" | "Dividend" | "Regulatory" | "Governance" | "Insolvency";
 
-export interface CorpusStatus {
-  documents: number;
-  entities: number;
-  events: number;
-  /** ISO timestamp of the most recent completed ingest run */
-  lastIngestAt: string | null;
-}
+/** The taxonomy is closed on the server, so the two free-text fields in the schema are narrowed here. */
+type Typed<T> = Omit<T, "type" | "group"> & { type: EventType; group: EventGroup };
 
-export interface SourceCount {
-  kind: SourceKind;
-  documents: number;
-}
-
-/** One day of the market aggregate: mean and spread of entity scores. */
-export interface MarketPoint {
-  t: string;
-  mean: number;
-  std: number;
-  /** number of scored mentions that day */
-  n: number;
-}
-
-export interface SeriesPoint {
-  t: string;
-  /** mean entity score that day, -1..1 */
-  v: number;
-}
-
-export interface EntityRow {
-  id: string;
-  name: string;
-  ticker: string;
-  sector: string;
-  /** aggregate score over the window, -1..1 */
-  score: number;
-  /** change vs the previous window */
-  delta: number;
-  sentiment: SentimentLabel;
-  mentions: number;
-  /** mean calibrated confidence, 0..1 */
-  confidence: number;
-  series: SeriesPoint[];
-}
-
-export interface EventMarker {
-  id: string;
-  t: string;
-  type: EventType;
-  group: EventGroup;
-  entityId: string;
-  entityName: string;
-  headline: string;
-  source: SourceKind;
-  documentId: string;
-}
-
-export interface FilingEntity {
-  id: string;
-  name: string;
-  sentiment: SentimentLabel;
-}
-
-export interface FilingItem {
-  id: string;
-  title: string;
-  source: SourceKind;
-  publishedAt: string;
-  entities: FilingEntity[];
-  status: "ingested" | "parsed" | "analysed" | "failed";
-}
-
-export interface Overview {
-  window: Window;
-  corpus: CorpusStatus;
-  sources: SourceCount[];
-  market: MarketPoint[];
-  events: EventMarker[];
-  entities: EntityRow[];
-  filings: FilingItem[];
-}
+export type CorpusStatus = S["CorpusStatus"];
+export type SourceCount = S["SourceCount"];
+export type MarketPoint = S["MarketPoint"];
+export type SeriesPoint = S["SeriesPoint"];
+export type EntityRow = S["EntityRow"];
+export type EventMarker = Typed<S["EventMarker"]>;
+export type FilingEntity = S["FilingEntity"];
+export type FilingItem = S["FilingItem"];
+export type Overview = Omit<S["Overview"], "events" | "window"> & { events: EventMarker[]; window: Window };
 
 export const EVENT_GROUP: Record<EventType, EventGroup> = {
   Acquisition: "Corporate action",
@@ -138,136 +75,28 @@ export const EVENT_GROUP: Record<EventType, EventGroup> = {
 /* ---------- documents, events, summaries ---------- */
 
 /** Character offsets into DocumentDetail.text; the UI renders by slicing. */
-export interface EntitySpan {
-  start: number;
-  end: number;
-  entityId: string;
-  surface: string;
-  sentiment: SentimentLabel;
-  /** calibrated confidence of the entity-sentiment head, 0..1 */
-  confidence: number;
-}
-
-export interface EventRecord extends EventMarker {
-  sentiment: SentimentLabel;
-  confidence: number;
-  /** offsets of the trigger sentence in the source document's text */
-  trigger: { start: number; end: number } | null;
-  arguments: Record<string, string>;
-  extractor: "llm" | "rules";
-}
-
-export interface Evidence {
-  documentId: string;
-  documentTitle: string;
-  source: SourceKind;
-  text: string;
-}
-
-export interface Claim {
-  id: string;
-  text: string;
-  verification: Verification;
-  /** NLI entailment and contradiction probabilities, 0..1 */
-  entail: number;
-  contradict: number;
-  evidence: Evidence | null;
-}
-
-export interface Summary {
-  id: string;
-  scope: "document" | "entity";
-  model: string;
-  generatedAt: string;
-  claims: Claim[];
-}
-
-export interface DocumentDetail extends FilingItem {
-  url: string;
-  words: number;
-  ocr: boolean;
-  text: string;
-  spans: EntitySpan[];
-  events: EventRecord[];
-  summary: Summary | null;
-}
-
-export interface Mention {
-  documentId: string;
-  documentTitle: string;
-  source: SourceKind;
-  publishedAt: string;
-  sentence: string;
-  /** offsets of the mention inside `sentence` */
-  start: number;
-  end: number;
-  sentiment: SentimentLabel;
-  confidence: number;
-}
-
-export interface CompanyDetail {
-  entity: EntityRow;
-  aliases: string[];
-  events: EventRecord[];
-  mentions: Mention[];
-  summary: Summary | null;
-}
+export type EntitySpan = S["EntitySpan"];
+export type EventRecord = Typed<S["EventRecord"]>;
+export type Evidence = S["Evidence"];
+export type Claim = S["Claim"];
+export type Summary = S["Summary"];
+export type DocumentDetail = Omit<S["DocumentDetail"], "events"> & { events: EventRecord[] };
+export type Mention = S["Mention"];
+export type CompanyDetail = Omit<S["CompanyDetail"], "events"> & { events: EventRecord[] };
 
 /* ---------- evaluation ---------- */
 
-export interface MetricRow {
-  task: "ner" | "sentiment" | "events" | "summaries";
-  model: string;
-  baseline: boolean;
-  dataset: string;
-  /** India gold slice vs public benchmark: the transfer gap is RQ4 */
-  indian: boolean;
-  metrics: Record<string, number>;
-}
-
-export interface Confusion {
-  model: string;
-  dataset: string;
-  labels: SentimentLabel[];
-  /** rows = gold, columns = predicted */
-  matrix: number[][];
-}
-
-export interface ReliabilityBin {
-  confidence: number;
-  accuracy: number;
-  n: number;
-}
-
-export interface EvalReport {
-  generatedAt: string | null;
-  rows: MetricRow[];
-  confusion: Confusion | null;
-  reliability: { before: ReliabilityBin[]; after: ReliabilityBin[]; eceBefore: number; eceAfter: number } | null;
-  agreement: { task: string; kappa: number; items: number }[];
-}
+export type MetricRow = S["MetricRow"];
+export type Confusion = S["Confusion"];
+export type ReliabilityBin = S["ReliabilityBin"];
+export type EvalReport = S["EvalReport"];
 
 /* ---------- analyze jobs ---------- */
 
-export type StageKey = "ingest" | "parse" | "entities" | "sentiment" | "events" | "summary" | "verify";
-
-export interface JobStage {
-  key: StageKey;
-  status: "pending" | "running" | "done" | "failed" | "skipped";
-  ms: number | null;
-  note: string | null;
-}
-
-export interface Job {
-  id: string;
-  status: "queued" | "running" | "done" | "failed";
-  stages: JobStage[];
-  documentId: string | null;
-}
+export type StageKey = S["JobStage"]["key"];
+export type JobStage = S["JobStage"];
+export type Job = S["Job"];
 
 /* ---------- launcher index ---------- */
 
-export interface SearchIndex {
-  companies: { id: string; name: string; ticker: string }[];
-  filings: { id: string; title: string; source: SourceKind }[];
-}
+export type SearchIndex = S["SearchIndex"];

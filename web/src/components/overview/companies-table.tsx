@@ -9,7 +9,7 @@ import clsx from "clsx";
 import { useFocus } from "@/components/linked/focus";
 import { Confidence, Delta, SentimentPill } from "@/components/ui/sentiment";
 import type { EntityRow } from "@/lib/api/types";
-import { fmtInt } from "@/lib/format";
+import { fmtInt, magnitude } from "@/lib/format";
 
 type Key = "name" | "sector" | "score" | "delta" | "mentions" | "confidence";
 
@@ -30,9 +30,11 @@ export function CompaniesTable({ entities, selectedId }: { entities: EntityRow[]
 
   const rows = useMemo(() => {
     const out = [...entities];
+    const value = (e: EntityRow) => (sort.key === "delta" ? (e.delta === null ? null : magnitude(e.delta)) : e[sort.key]);
     out.sort((a, b) => {
-      const va = sort.key === "delta" ? Math.abs(a.delta) : a[sort.key];
-      const vb = sort.key === "delta" ? Math.abs(b.delta) : b[sort.key];
+      const va = value(a);
+      const vb = value(b);
+      if (va === null || vb === null) return va === vb ? 0 : va === null ? 1 : -1; // unscored companies last
       return (va < vb ? -1 : va > vb ? 1 : 0) * sort.dir;
     });
     return out;

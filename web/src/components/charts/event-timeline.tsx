@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -12,6 +12,9 @@ export const GROUPS: EventGroup[] = ["Regulatory", "Insolvency", "Governance", "
 const M = { top: 8, right: 18, bottom: 28, left: 128 };
 const day = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
 
+type Dated = EventRecord & { t: string };
+const isDated = (e: EventRecord): e is Dated => e.t !== null;
+
 // Shape carries sentiment as well as colour: triangle up, triangle down, circle.
 const SHAPE = { positive: d3.symbolTriangle, negative: d3.symbolTriangle, neutral: d3.symbolCircle } as const;
 
@@ -20,7 +23,7 @@ const SHAPE = { positive: d3.symbolTriangle, negative: d3.symbolTriangle, neutra
  * for positive and down for negative, so the reading survives without colour.
  */
 export function EventTimeline({
-  events,
+  events: all,
   selectedId,
   onSelect,
   windowDays,
@@ -30,6 +33,8 @@ export function EventTimeline({
   onSelect: (id: string) => void;
   windowDays: number;
 }) {
+  // an event with no date cannot be placed on a time axis; the log beside the chart still lists it
+  const events = useMemo(() => all.filter(isDated), [all]);
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 0, h: 260 });
@@ -115,15 +120,16 @@ export function EventTimeline({
       .data(pos)
       .join("path")
       .attr("class", "et-mark")
-      .attr("d", (p) => d3.symbol(SHAPE[p.e.sentiment], p.e.id === selectedId ? 150 : 80)())
+      .attr("d", (p) => d3.symbol(SHAPE[p.e.sentiment ?? "neutral"], p.e.id === selectedId ? 150 : 80)())
       .attr("transform", (p) => `translate(${p.cx},${p.cy}) rotate(${p.e.sentiment === "negative" ? 180 : 0})`)
-      .attr("fill", (p) => (p.e.sentiment === "positive" ? "var(--pos)" : p.e.sentiment === "negative" ? "var(--neg)" : "var(--neu)"))
-      .attr("stroke", (p) => (p.e.id === selectedId ? "var(--focus-ring)" : "var(--surface)"))
+      // a hollow circle is an event the sentiment model did not score
+      .attr("fill", (p) => (p.e.sentiment === "positive" ? "var(--pos)" : p.e.sentiment === "negative" ? "var(--neg)" : p.e.sentiment === "neutral" ? "var(--neu)" : "var(--surface)"))
+      .attr("stroke", (p) => (p.e.id === selectedId ? "var(--focus-ring)" : p.e.sentiment === null ? "var(--text-3)" : "var(--surface)"))
       .attr("stroke-width", (p) => (p.e.id === selectedId ? 2.5 : 1.5))
       .attr("opacity", (p) => (entityId && p.e.entityId !== entityId ? 0.25 : 1))
       .attr("tabindex", 0)
       .attr("role", "button")
-      .attr("aria-label", (p) => `${p.e.type}, ${p.e.entityName}, ${p.e.t.slice(0, 10)}`)
+      .attr("aria-label", (p) => `${p.e.type}, ${p.e.entityName ?? "unresolved party"}, ${p.e.t.slice(0, 10)}`)
       .style("cursor", "pointer")
       .on("click", (_, p) => onSelect(p.e.id))
       .on("keydown", (ev: KeyboardEvent, p) => {
@@ -135,7 +141,7 @@ export function EventTimeline({
       .on("pointerenter", (_, p) => setFocus({ entityId: p.e.entityId }))
       .on("pointerleave", () => setFocus({ entityId: null }))
       .append("title")
-      .text((p) => `${p.e.type} · ${p.e.entityName}\n${p.e.headline}`);
+      .text((p) => `${p.e.type} · ${p.e.entityName ?? "unresolved party"}\n${p.e.headline}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events, selectedId, size, windowDays, entityId]);
 

@@ -8,6 +8,7 @@ import { useFocus } from "@/components/linked/focus";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Empty } from "@/components/ui/states";
 import type { Claim, Summary, Verification } from "@/lib/api/types";
+import { NONE } from "@/lib/format";
 
 const ORDER: Record<Verification, number> = { contradicted: 0, unverified: 1, entailed: 2 };
 
@@ -64,14 +65,14 @@ function ClaimRow({ claim, currentDocumentId }: { claim: Claim; currentDocumentI
         </p>
         <p className="mt-1 font-mono text-2xs text-ink-3">
           <span className={ink}>{label}</span>
-          <span className="px-1.5">·</span>entail {claim.entail.toFixed(2)}
-          <span className="px-1.5">·</span>contradict {claim.contradict.toFixed(2)}
+          <span className="px-1.5">·</span>entail {claim.entail?.toFixed(2) ?? NONE}
+          <span className="px-1.5">·</span>contradict {claim.contradict?.toFixed(2) ?? NONE}
         </p>
         {ev ? (
           <figure
-            onPointerEnter={() => setFocus({ span: { documentId: ev.documentId, text: ev.text } })}
+            onPointerEnter={() => setFocus({ span: { documentId: ev.documentId, text: ev.text, start: ev.start, end: ev.end } })}
             onPointerLeave={(e) => e.pointerType === "mouse" && setFocus({ span: null })}
-            onClick={() => setFocus({ span: { documentId: ev.documentId, text: ev.text } })}
+            onClick={() => setFocus({ span: { documentId: ev.documentId, text: ev.text, start: ev.start, end: ev.end } })}
             className={clsx(
               "mt-2 border border-line px-2.5 py-2 transition-colors",
               lit ? "border-ring/60 bg-ring-soft" : "bg-surface-2",

@@ -28,6 +28,8 @@ export function DocReader({ doc }: { doc: DocumentDetail }) {
 
   const evidence = useMemo(() => {
     if (!span || span.documentId !== doc.id) return null;
+    const { start, end } = span;
+    if (start != null && end != null && doc.text.slice(start, end) === span.text) return { start, end };
     const i = doc.text.indexOf(span.text);
     return i < 0 ? null : { start: i, end: i + span.text.length };
   }, [span, doc]);
@@ -63,8 +65,9 @@ export function DocReader({ doc }: { doc: DocumentDetail }) {
       <header className="border-b border-line pb-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-2xs text-ink-3">
           <SourceBadge kind={doc.source} />
-          <time dateTime={doc.publishedAt}>
-            {fmtDayLong(doc.publishedAt)}, {fmtTime(doc.publishedAt)}
+          <time dateTime={doc.publishedAt ?? undefined}>
+            {fmtDayLong(doc.publishedAt)}
+            {doc.publishedAt && `, ${fmtTime(doc.publishedAt)}`}
           </time>
           <span>{fmtInt(doc.words)} words</span>
           {doc.ocr && <span className="text-warn">ocr text</span>}
@@ -78,7 +81,7 @@ export function DocReader({ doc }: { doc: DocumentDetail }) {
           const text = doc.text.slice(s.start, s.end);
           const isTriggerStart = s.event && s.event.trigger!.start === s.start;
           const isSpanEnd = s.span && s.span.end === s.end;
-          const lit = s.span && entityId === s.span.entityId;
+          const lit = s.span && entityId !== null && entityId === s.span.entityId;
           return (
             <span
               key={s.start}
@@ -96,7 +99,7 @@ export function DocReader({ doc }: { doc: DocumentDetail }) {
               {s.span ? (
                 <mark
                   tabIndex={0}
-                  title={`${s.span.surface} · ${s.span.sentiment} · confidence ${fmtPct(s.span.confidence)}`}
+                  title={`${s.span.surface} · ${s.span.sentiment ?? "unscored"} · confidence ${fmtPct(s.span.confidence)}`}
                   onPointerEnter={() => setFocus({ entityId: s.span!.entityId })}
                   onPointerLeave={() => setFocus({ entityId: null })}
                   onFocus={() => setFocus({ entityId: s.span!.entityId })}

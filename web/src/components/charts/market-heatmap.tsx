@@ -55,10 +55,15 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
   }, []);
 
   const days = useMemo(() => market.map((m) => dayKey(m.t)), [market]);
-  const rows = useMemo(() => [...entities].sort((a, b) => b.score - a.score), [entities]);
+  // unscored companies sink to the bottom
+  const rows = useMemo(
+    () => [...entities].sort((a, b) => (a.score === null || b.score === null ? Number(a.score === null) - Number(b.score === null) : b.score - a.score)),
+    [entities],
+  );
   const eventAt = useMemo(() => {
     const m = new Map<string, EventMarker[]>();
     for (const e of events) {
+      if (e.t === null || e.entityId === null) continue;
       const k = `${e.entityId}|${dayKey(e.t)}`;
       m.set(k, [...(m.get(k) ?? []), e]);
     }
@@ -214,8 +219,8 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
     const scores = root.append("g").attr("class", "hm-scores");
     rows.forEach((e, i) => {
       const y = gridTop + i * rowH + rowH / 2;
-      const up = e.score > 0.12;
-      const down = e.score < -0.12;
+      const up = e.score !== null && e.score > 0.12;
+      const down = e.score !== null && e.score < -0.12;
       const gx = labelW + gridW + 10;
       // icon carries the sign so the number never relies on colour alone
       scores
@@ -349,7 +354,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
     const m = market[cursor.col];
     const ent = cursor.row >= 0 ? rows[cursor.row] : null;
     const v = ent ? ent.series.find((s) => dayKey(s.t) === k)?.v : undefined;
-    const evs = ent ? eventAt.get(`${ent.id}|${k}`) ?? [] : events.filter((e) => dayKey(e.t) === k);
+    const evs = ent ? eventAt.get(`${ent.id}|${k}`) ?? [] : events.filter((e) => e.t !== null && dayKey(e.t) === k);
     return { k, m, ent, v, evs };
   })() : null;
   const tipLeft = cursor ? labelW + cursor.col * colW + colW + 12 : 0;

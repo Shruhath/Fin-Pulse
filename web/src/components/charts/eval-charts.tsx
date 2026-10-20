@@ -179,7 +179,7 @@ export function ConfusionMatrix({ data }: { data: Confusion }) {
 }
 
 /** Reliability diagram: accuracy per confidence bin before and after temperature scaling. */
-export function Reliability({ before, after, eceBefore, eceAfter }: { before: ReliabilityBin[]; after: ReliabilityBin[]; eceBefore: number; eceAfter: number }) {
+export function Reliability({ before, after, eceBefore, eceAfter }: { before: ReliabilityBin[]; after: ReliabilityBin[] | null; eceBefore: number; eceAfter: number | null }) {
   const [ref, size] = useSize<HTMLDivElement>(200);
   const svgRef = useRef<SVGSVGElement>(null);
   useEffect(() => {
@@ -197,9 +197,9 @@ export function Reliability({ before, after, eceBefore, eceAfter }: { before: Re
     g.append("line").attr("x1", x(0.3)).attr("y1", y(0.3)).attr("x2", x(1)).attr("y2", y(1)).attr("stroke", "var(--chart-zero)").attr("stroke-dasharray", "3 3");
     const line = d3.line<ReliabilityBin>().x((d) => x(d.confidence)).y((d) => y(d.accuracy));
     g.append("path").datum(before).attr("d", line).attr("fill", "none").attr("stroke", "var(--text-3)").attr("stroke-width", 1.5);
-    g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2);
+    if (after) g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2);
     g.selectAll("circle.b").data(before).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3).attr("fill", "var(--surface)").attr("stroke", "var(--text-3)");
-    g.selectAll("circle.a").data(after).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3.5).attr("fill", "var(--accent)");
+    g.selectAll("circle.a").data(after ?? []).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3.5).attr("fill", "var(--accent)");
     g.append("text").attr("x", side).attr("y", side + 30).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-family", "var(--font-mono)").attr("font-size", 10).text("confidence → accuracy ↑");
   }, [before, after, size]);
   return (
@@ -208,12 +208,14 @@ export function Reliability({ before, after, eceBefore, eceAfter }: { before: Re
         <li className="flex items-center gap-1.5">
           <span className="h-px w-4 bg-ink-3" aria-hidden="true" /> before · ECE {eceBefore.toFixed(3)}
         </li>
-        <li className="flex items-center gap-1.5">
-          <span className="h-0.5 w-4 bg-accent" aria-hidden="true" /> after temperature scaling · ECE {eceAfter.toFixed(3)}
-        </li>
+        {eceAfter !== null && (
+          <li className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 bg-accent" aria-hidden="true" /> after temperature scaling · ECE {eceAfter.toFixed(3)}
+          </li>
+        )}
       </ul>
       <div ref={ref} className="relative min-h-0 flex-1">
-        <svg ref={svgRef} width={size.w} height={size.h} role="img" aria-label={`Reliability diagram. ECE ${eceBefore.toFixed(3)} before and ${eceAfter.toFixed(3)} after calibration.`} className="absolute inset-0" />
+        <svg ref={svgRef} width={size.w} height={size.h} role="img" aria-label={eceAfter === null ? `Reliability diagram. ECE ${eceBefore.toFixed(3)}, not calibrated.` : `Reliability diagram. ECE ${eceBefore.toFixed(3)} before and ${eceAfter.toFixed(3)} after calibration.`} className="absolute inset-0" />
       </div>
     </div>
   );
