@@ -1,0 +1,37 @@
+<View>
+  <Header value="$title"/>
+  <Text name="text" value="$text" granularity="word"/>
+
+  <Header value="1. Company mentions: select the name, label it, choose its sentiment, add its slug"/>
+  <Labels name="entity" toName="text">
+    <Label value="Entity" background="#2f6fa8"/>
+  </Labels>
+  <Choices name="sentiment" toName="text" perRegion="true" choice="single" showInline="true">
+    <Choice value="positive"/>
+    <Choice value="negative"/>
+    <Choice value="neutral"/>
+  </Choices>
+  <TextArea name="slug" toName="text" perRegion="true" rows="1" placeholder="gazetteer slug (optional)"/>
+
+  <Header value="2. Events: select the sentence that states the event and label its type"/>
+  <Labels name="event" toName="text">
+    <Label value="Acquisition" background="#8a5a00"/>
+    <Label value="Clinical Trial" background="#8a5a00"/>
+    <Label value="Guidance Change" background="#8a5a00"/>
+    <Label value="New Contract" background="#8a5a00"/>
+    <Label value="Stock Repurchase" background="#8a5a00"/>
+    <Label value="Stock Split" background="#8a5a00"/>
+    <Label value="Reverse Split" background="#8a5a00"/>
+    <Label value="Regular Dividend" background="#8a5a00"/>
+    <Label value="Special Dividend" background="#8a5a00"/>
+    <Label value="Dividend Cut" background="#8a5a00"/>
+    <Label value="Dividend Increase" background="#8a5a00"/>
+    <Label value="SEBI Penalty" background="#8a5a00"/>
+    <Label value="RBI Action" background="#8a5a00"/>
+    <Label value="NCLT Admission" background="#8a5a00"/>
+    <Label value="Pledge Invocation" background="#8a5a00"/>
+    <Label value="Auditor Resignation" background="#8a5a00"/>
+  </Labels>
+  <TextArea name="event_args" toName="text" perRegion="true" rows="2"
+            placeholder="arguments as key=value; key=value (amount_inr=..., provisions=...)"/>
+</View>

@@ -1,0 +1,94 @@
+{
+  "version": "deberta-ner@96777dc2",
+  "generated_at": "2026-10-19T16:56:45+00:00",
+  "git_sha": "1044db36ff71e773d231783c80147fea41edfdf5",
+  "data_hash": "1af1b133246c447b5f942a821937c160aedb147a20da3471e7e319049440bede",
+  "train_sentences": 8908,
+  "dropped": {
+    "span not on token boundaries": 520
+  },
+  "training": {
+    "epochs": [
+      {
+        "epoch": 1.0,
+        "train_loss": 0.14917993095218735,
+        "dev_span_f1": 0.9039692701664532
+      },
+      {
+        "epoch": 2.0,
+        "train_loss": 0.054908847540021476,
+        "dev_span_f1": 0.9116338207247298
+      },
+      {
+        "epoch": 3.0,
+        "train_loss": 0.031976558067336125,
+        "dev_span_f1": 0.9172015404364569
+      },
+      {
+        "epoch": 4.0,
+        "train_loss": 0.019114478941487007,
+        "dev_span_f1": 0.9168266154830454
+      }
+    ],
+    "best_epoch": 3,
+    "seconds": 238.1
+  },
+  "rows": [
+    {
+      "stage": "ner",
+      "model": "Gazetteer rules",
+      "baseline": true,
+      "dataset": "FinEntity test",
+      "indian": false,
+      "metrics": {
+        "spanPrecision": 0.5,
+        "spanRecall": 0.005376344086021506,
+        "spanF1": 0.010638297872340427,
+        "n": 86.0,
+        "goldSpans": 186.0
+      }
+    },
+    {
+      "stage": "ner",
+      "model": "Gazetteer rules",
+      "baseline": true,
+      "dataset": "SEntFiN test",
+      "indian": true,
+      "metrics": {
+        "spanPrecision": 0.9313304721030042,
+        "spanRecall": 0.16062176165803108,
+        "spanF1": 0.273989898989899,
+        "n": 1020.0,
+        "goldSpans": 1351.0
+      }
+    },
+    {
+      "stage": "ner",
+      "model": "DeBERTa-v3 token classifier (deberta-ner@96777dc2)",
+      "baseline": false,
+      "dataset": "FinEntity test",
+      "indian": false,
+      "metrics": {
+        "spanPrecision": 0.9468085106382979,
+        "spanRecall": 0.956989247311828,
+        "spanF1": 0.9518716577540107,
+        "n": 86.0,
+        "goldSpans": 186.0
+      }
+    },
+    {
+      "stage": "ner",
+      "model": "DeBERTa-v3 token classifier (deberta-ner@96777dc2)",
+      "baseline": false,
+      "dataset": "SEntFiN test",
+      "indian": true,
+      "metrics": {
+        "spanPrecision": 0.899352983465133,
+        "spanRecall": 0.9259807549962991,
+        "spanF1": 0.9124726477024071,
+        "n": 1020.0,
+        "goldSpans": 1351.0
+      }
+    }
+  ]
+}

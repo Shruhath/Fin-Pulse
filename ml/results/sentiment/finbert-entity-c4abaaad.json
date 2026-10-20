@@ -1,0 +1,447 @@
+{
+  "model": "finbert-entity",
+  "version": "finbert-entity@c4abaaad",
+  "generated_at": "2026-10-19T16:45:38+00:00",
+  "git_sha": "a2261f4d186a17787db33a86963b653e442d530b",
+  "data_hash": "aa4da515e9d1f85695228973ed1bd3f3fecd63045d0b392977da2afb908f7612",
+  "train_examples": 13248,
+  "dev_examples": 1644,
+  "training": {
+    "epochs": [
+      {
+        "epoch": 1.0,
+        "train_loss": 0.5310646638562138,
+        "dev_macro_f1": 0.8676414775943195
+      },
+      {
+        "epoch": 2.0,
+        "train_loss": 0.26353638731663065,
+        "dev_macro_f1": 0.8828868035032992
+      },
+      {
+        "epoch": 3.0,
+        "train_loss": 0.15331471497013013,
+        "dev_macro_f1": 0.8939119835656952
+      },
+      {
+        "epoch": 4.0,
+        "train_loss": 0.10080624189439279,
+        "dev_macro_f1": 0.8903880768902716
+      }
+    ],
+    "best_epoch": 3,
+    "seconds": 201.7
+  },
+  "rows": [
+    {
+      "stage": "sentiment",
+      "model": "Entity-marked FinBERT, fine-tuned (finbert-entity@c4abaaad)",
+      "baseline": false,
+      "dataset": "FinEntity test",
+      "split": "test",
+      "indian": false,
+      "metrics": {
+        "macroF1": 0.9196225496031977,
+        "weightedF1": 0.9231765748989373,
+        "accuracy": 0.9223744292237442,
+        "ece": 0.04575183957623747,
+        "n": 219.0,
+        "ece_before": 0.04454870516362252,
+        "temperature": 1.4831720729622173
+      },
+      "detail": {
+        "labels": [
+          "negative",
+          "neutral",
+          "positive"
+        ],
+        "confusion": [
+          [
+            48,
+            2,
+            2
+          ],
+          [
+            2,
+            104,
+            8
+          ],
+          [
+            0,
+            3,
+            50
+          ]
+        ],
+        "reliability": [
+          {
+            "confidence": 0.38255517703919867,
+            "accuracy": 1.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.49431200769230893,
+            "accuracy": 0.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.5246938106340332,
+            "accuracy": 0.25,
+            "n": 4
+          },
+          {
+            "confidence": 0.6396114974441991,
+            "accuracy": 0.6666666666666666,
+            "n": 6
+          },
+          {
+            "confidence": 0.747676436596124,
+            "accuracy": 0.5714285714285714,
+            "n": 7
+          },
+          {
+            "confidence": 0.8586857143207827,
+            "accuracy": 0.8,
+            "n": 25
+          },
+          {
+            "confidence": 0.9545947893458313,
+            "accuracy": 0.9828571428571429,
+            "n": 175
+          }
+        ],
+        "reliability_before": [
+          {
+            "confidence": 0.4065755870024616,
+            "accuracy": 1.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.5487525369795964,
+            "accuracy": 0.2,
+            "n": 5
+          },
+          {
+            "confidence": 0.7351649804515232,
+            "accuracy": 0.6666666666666666,
+            "n": 6
+          },
+          {
+            "confidence": 0.8478407033153517,
+            "accuracy": 0.5714285714285714,
+            "n": 7
+          },
+          {
+            "confidence": 0.985365522635106,
+            "accuracy": 0.96,
+            "n": 200
+          }
+        ],
+        "mcnemar_vs_tfidf": {
+          "a_only": 44.0,
+          "b_only": 10.0,
+          "p_value": 3.3856859533720747e-06
+        }
+      },
+      "counts": {
+        "train": 1716,
+        "dev": 196,
+        "test": 219
+      },
+      "dropped": {}
+    },
+    {
+      "stage": "sentiment",
+      "model": "Entity-marked FinBERT, fine-tuned (finbert-entity@c4abaaad)",
+      "baseline": false,
+      "dataset": "SEntFiN test",
+      "split": "test",
+      "indian": true,
+      "metrics": {
+        "macroF1": 0.8733697492199287,
+        "weightedF1": 0.8733439012654561,
+        "accuracy": 0.8733096085409253,
+        "ece": 0.029611574107681473,
+        "n": 1405.0,
+        "ece_before": 0.07712711080912946,
+        "temperature": 1.4831720729622173
+      },
+      "detail": {
+        "labels": [
+          "negative",
+          "neutral",
+          "positive"
+        ],
+        "confusion": [
+          [
+            310,
+            29,
+            10
+          ],
+          [
+            34,
+            461,
+            43
+          ],
+          [
+            18,
+            44,
+            456
+          ]
+        ],
+        "reliability": [
+          {
+            "confidence": 0.3701124269459276,
+            "accuracy": 0.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.4745728621426827,
+            "accuracy": 0.3,
+            "n": 10
+          },
+          {
+            "confidence": 0.5506517461416583,
+            "accuracy": 0.5106382978723404,
+            "n": 47
+          },
+          {
+            "confidence": 0.6479600326329193,
+            "accuracy": 0.6101694915254238,
+            "n": 59
+          },
+          {
+            "confidence": 0.7522782620941187,
+            "accuracy": 0.6122448979591837,
+            "n": 98
+          },
+          {
+            "confidence": 0.8596496345919187,
+            "accuracy": 0.7194244604316546,
+            "n": 139
+          },
+          {
+            "confidence": 0.9532220954467943,
+            "accuracy": 0.9552806850618458,
+            "n": 1051
+          }
+        ],
+        "reliability_before": [
+          {
+            "confidence": 0.38697758864942705,
+            "accuracy": 0.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.43965181403288006,
+            "accuracy": 0.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.5579337079361101,
+            "accuracy": 0.4,
+            "n": 30
+          },
+          {
+            "confidence": 0.6462967344144226,
+            "accuracy": 0.6363636363636364,
+            "n": 33
+          },
+          {
+            "confidence": 0.7498081508540264,
+            "accuracy": 0.5769230769230769,
+            "n": 52
+          },
+          {
+            "confidence": 0.8571447200022371,
+            "accuracy": 0.6021505376344086,
+            "n": 93
+          },
+          {
+            "confidence": 0.9855788075362074,
+            "accuracy": 0.9271966527196652,
+            "n": 1195
+          }
+        ],
+        "mcnemar_vs_tfidf": {
+          "a_only": 177.0,
+          "b_only": 77.0,
+          "p_value": 3.114435523272881e-10
+        }
+      },
+      "counts": {
+        "train": 11532,
+        "dev": 1448,
+        "test": 1405
+      },
+      "dropped": {
+        "entity not in title": 19
+      }
+    },
+    {
+      "stage": "sentiment",
+      "model": "FinBERT, sentence-level (off-the-shelf)",
+      "baseline": true,
+      "dataset": "FinEntity test",
+      "split": "test",
+      "indian": false,
+      "metrics": {
+        "macroF1": 0.6969553464351504,
+        "weightedF1": 0.6894289734491945,
+        "accuracy": 0.6940639269406392,
+        "ece": 0.21410427730294623,
+        "n": 219.0
+      },
+      "detail": {
+        "labels": [
+          "negative",
+          "neutral",
+          "positive"
+        ],
+        "confusion": [
+          [
+            47,
+            1,
+            4
+          ],
+          [
+            25,
+            59,
+            30
+          ],
+          [
+            5,
+            2,
+            46
+          ]
+        ],
+        "reliability": [
+          {
+            "confidence": 0.3584019031233773,
+            "accuracy": 0.0,
+            "n": 1
+          },
+          {
+            "confidence": 0.45660035915006003,
+            "accuracy": 0.0,
+            "n": 4
+          },
+          {
+            "confidence": 0.5649011153025111,
+            "accuracy": 0.9,
+            "n": 10
+          },
+          {
+            "confidence": 0.6690080590856441,
+            "accuracy": 0.75,
+            "n": 8
+          },
+          {
+            "confidence": 0.7365893896572433,
+            "accuracy": 0.41935483870967744,
+            "n": 31
+          },
+          {
+            "confidence": 0.86961313261761,
+            "accuracy": 0.6363636363636364,
+            "n": 22
+          },
+          {
+            "confidence": 0.9492262169116777,
+            "accuracy": 0.7692307692307693,
+            "n": 143
+          }
+        ]
+      },
+      "counts": {
+        "train": 1716,
+        "dev": 196,
+        "test": 219
+      },
+      "dropped": {}
+    },
+    {
+      "stage": "sentiment",
+      "model": "FinBERT, sentence-level (off-the-shelf)",
+      "baseline": true,
+      "dataset": "SEntFiN test",
+      "split": "test",
+      "indian": true,
+      "metrics": {
+        "macroF1": 0.6716322596413694,
+        "weightedF1": 0.6673458408183776,
+        "accuracy": 0.6661921708185053,
+        "ece": 0.1723900822300259,
+        "n": 1405.0
+      },
+      "detail": {
+        "labels": [
+          "negative",
+          "neutral",
+          "positive"
+        ],
+        "confusion": [
+          [
+            248,
+            79,
+            22
+          ],
+          [
+            84,
+            362,
+            92
+          ],
+          [
+            25,
+            167,
+            326
+          ]
+        ],
+        "reliability": [
+          {
+            "confidence": 0.3635430866782783,
+            "accuracy": 0.3333333333333333,
+            "n": 6
+          },
+          {
+            "confidence": 0.46486401821997037,
+            "accuracy": 0.4074074074074074,
+            "n": 27
+          },
+          {
+            "confidence": 0.5483837479790357,
+            "accuracy": 0.46534653465346537,
+            "n": 101
+          },
+          {
+            "confidence": 0.6526888427483768,
+            "accuracy": 0.5576923076923077,
+            "n": 104
+          },
+          {
+            "confidence": 0.7555409840011564,
+            "accuracy": 0.5490196078431373,
+            "n": 153
+          },
+          {
+            "confidence": 0.8610957330620819,
+            "accuracy": 0.6705539358600583,
+            "n": 343
+          },
+          {
+            "confidence": 0.937787590666159,
+            "accuracy": 0.7511177347242921,
+            "n": 671
+          }
+        ]
+      },
+      "counts": {
+        "train": 11532,
+        "dev": 1448,
+        "test": 1405
+      },
+      "dropped": {
+        "entity not in title": 19
+      }
+    }
+  ]
+}

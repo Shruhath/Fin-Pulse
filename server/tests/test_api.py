@@ -13,6 +13,7 @@ from finpulse.db.models import (
     Event,
     Mention,
     MentionSentiment,
+    Run,
     Sentence,
     Summary,
 )
@@ -212,7 +213,7 @@ def test_document_detail_masks_pan_without_moving_offsets(client, db):
     (event,) = body["events"]
     assert body["text"][event["trigger"]["start"] : event["trigger"]["end"]].startswith("SEBI imposed")
     assert event["arguments"]["amount"] == "₹5 lakh" and event["extractor"] == "rules"
-    assert event["confidence"] is None and event["sentiment"] is None
+    assert event["confidence"] is None and event["sentiment"] == "negative"
     assert body["summary"] is None and body["status"] == "analysed" and body["publishedAt"] == "2026-10-10"
 
 
@@ -324,5 +325,81 @@ def test_a_stored_summary_is_returned_with_its_evidence_sentence(client, db):
 def test_health_and_config(client):
     health = client.get("/api/health").json()
     assert health["database"] is True and health["status"] == "ok" and health["queuedJobs"] == 0
+    assert isinstance(health["ollamaModels"], list)
     cfg = client.get("/api/pipeline/config").json()
     assert cfg["scoreBand"] == 0.15 and cfg["eventModel"]
+
+
+def test_summaries_endpoint_lists_document_and_entity_summaries_with_subjects(client, db):
+    yes, docs, _ = _seed(db)
+    db.add(Summary(scope="document", doc_id=docs[0].id, model="llama", prompt_version="summary-v1"))
+    db.add(
+        Summary(
+            scope="entity_window", entity_id=yes.id, window_end=date(2026, 10, 10), model="llama",
+            prompt_version="summary-v1",
+        )
+    )  # fmt: skip
+    db.flush()
+    body = client.get("/api/summaries").json()
+    assert {(b["scope"], b["subject"]) for b in body} == {
+        ("document", docs[0].title),
+        ("entity", "Yes Bank Limited"),
+    }
+    only = client.get("/api/summaries?entity=yes-bank").json()
+    assert [b["entityId"] for b in only] == ["yes-bank"]
+    assert client.get("/api/summaries?entity=tata-motors").json() == []
+
+
+def test_events_prefer_the_llm_extractor_when_a_document_has_both(client, db):
+    yes, docs, _ = _seed(db)
+    db.add(
+        Event(
+            doc_id=docs[0].id, entity_id=yes.id, type="SEBI Penalty", trigger_start=0, trigger_end=59,
+            arguments={"action": "penalty"}, event_date=date(2026, 10, 10), extractor="llm",
+        )
+    )  # fmt: skip
+    db.flush()
+    assert [e["extractor"] for e in client.get("/api/events").json()] == ["llm"]
+    assert {e["extractor"] for e in client.get("/api/events?extractor=rules").json()} == {"rules"}
+    assert len(client.get("/api/events?extractor=llm").json()) == 1
+    assert client.get("/api/events?extractor=other").status_code == 422
+    assert [e["extractor"] for e in client.get(f"/api/documents/{docs[0].id}").json()["events"]] == ["llm"]
+
+
+def test_an_event_takes_the_sentiment_scored_inside_its_trigger_sentence(client, db):
+    _seed(db)
+    (event,) = client.get("/api/events").json()
+    assert event["sentiment"] == "negative"  # the mention inside the trigger sentence was scored negative
+
+
+def test_search_finds_companies_by_fuzzy_name_and_documents_by_text(client, db):
+    _seed(db)
+    found = client.get("/api/search?q=yes bank").json()
+    assert found["companies"][0]["id"] == "yes-bank"
+    assert found["filings"] and "<mark>" in found["filings"][0]["snippet"]
+    assert len({f["documentId"] for f in found["filings"]}) == len(found["filings"])  # one hit per document
+    assert client.get("/api/search?q=penalties").json()["filings"]  # stemming: penalties matches penalty
+    assert client.get("/api/search?q=zzzzqqq").json() == {"query": "zzzzqqq", "companies": [], "filings": []}
+    assert client.get("/api/search?q=a").status_code == 422
+
+
+def test_runs_list_the_recorded_stage_executions_newest_first(client, db):
+    assert client.get("/api/runs").json() == []
+    db.add(Run(stage="parse", model="pymupdf", params={"documents": 3}, status="done", latency_ms=1200))
+    db.add(
+        Run(
+            stage="events-llm",
+            model="qwen2.5:7b-instruct",
+            prompt_version="events-v1",
+            status="failed",
+            error="boom",
+        )
+    )
+    db.flush()
+    body = client.get("/api/runs").json()
+    assert [r["stage"] for r in body] == ["events-llm", "parse"]
+    assert body[0]["promptVersion"] == "events-v1" and body[0]["error"] == "boom"
+    assert body[1]["params"] == {"documents": 3} and body[1]["latencyMs"] == 1200
+    assert [r["stage"] for r in client.get("/api/runs?stage=parse").json()] == ["parse"]
+    assert [r["stage"] for r in client.get("/api/runs?status=failed").json()] == ["events-llm"]
+    assert client.get("/api/runs?status=odd").status_code == 422

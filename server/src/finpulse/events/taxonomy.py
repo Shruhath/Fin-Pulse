@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -150,7 +150,10 @@ class DividendIncreaseArgs(DividendArgs):
 
 class SEBIPenaltyArgs(_Args):
     type: Literal["SEBI Penalty"] = "SEBI Penalty"
-    action: Literal["penalty", "restraint", "settlement"] | None = None
+    action: (
+        Literal["penalty", "restraint", "settlement", "registration cancelled", "disgorgement", "warning"]
+        | None
+    ) = None
     amount_inr: Decimal | None = None
     provisions: list[str] = Field(default_factory=list)
     duration: str | None = None
@@ -183,6 +186,39 @@ class AuditorResignationArgs(_Args):
     auditor: str | None = None
     reason: str | None = None
     effective_date: date | None = None
+
+
+ARGUMENT_MODELS: dict[EventType, type[_Args]] = {
+    EventType.ACQUISITION: AcquisitionArgs,
+    EventType.CLINICAL_TRIAL: ClinicalTrialArgs,
+    EventType.GUIDANCE_CHANGE: GuidanceChangeArgs,
+    EventType.NEW_CONTRACT: NewContractArgs,
+    EventType.STOCK_REPURCHASE: StockRepurchaseArgs,
+    EventType.STOCK_SPLIT: StockSplitArgs,
+    EventType.REVERSE_SPLIT: ReverseSplitArgs,
+    EventType.REGULAR_DIVIDEND: RegularDividendArgs,
+    EventType.SPECIAL_DIVIDEND: SpecialDividendArgs,
+    EventType.DIVIDEND_CUT: DividendCutArgs,
+    EventType.DIVIDEND_INCREASE: DividendIncreaseArgs,
+    EventType.SEBI_PENALTY: SEBIPenaltyArgs,
+    EventType.RBI_ACTION: RBIActionArgs,
+    EventType.NCLT_ADMISSION: NCLTAdmissionArgs,
+    EventType.PLEDGE_INVOCATION: PledgeInvocationArgs,
+    EventType.AUDITOR_RESIGNATION: AuditorResignationArgs,
+}
+
+
+def argument_choices(event_type: EventType, key: str) -> list[str] | None:
+    """The allowed values of an argument typed as a Literal, or None when it is free text."""
+    for arg in get_args(ARGUMENT_MODELS[event_type].model_fields[key].annotation):
+        if get_origin(arg) is Literal:
+            return [str(v) for v in get_args(arg)]
+    return None
+
+
+def argument_fields(event_type: EventType) -> list[str]:
+    """The argument names the model for `event_type` accepts (without the discriminator)."""
+    return [name for name in ARGUMENT_MODELS[event_type].model_fields if name != "type"]
 
 
 EventArgs = Annotated[

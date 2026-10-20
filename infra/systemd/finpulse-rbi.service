@@ -1,0 +1,8 @@
+[Unit]
+Description=FinPulse: collect today's RBI press releases and run the cheap stages over them
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/FinPulse/server
+ExecStart=/usr/bin/uv run finpulse ingest rbi
+ExecStart=/usr/bin/uv run finpulse pipeline --stages parse link events

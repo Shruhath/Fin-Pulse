@@ -7,6 +7,10 @@ This plan turns what the Review 1, CS-3 and Review 2 submissions promised into a
 system: a real UI, API, database, ingestion pipeline and models. Section 11 traces every
 promise in the decks to the place it gets built, so nothing a reviewer saw goes missing.
 
+> **Status (October 2026).** The backend described in sections 3 to 6 is built; what exists, how to run
+> it, the measured results and every place it differs from this plan are in `docs/BACKEND.md`. The
+> dataset package is described in `docs/DATASET_CARD.md`.
+
 ---
 
 ## 1. What "done" looks like on 14 October

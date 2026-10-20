@@ -1,0 +1,29 @@
+{
+  "git_sha": "843c19e868d7bb790afb95f0bd9680d89ce04106",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "prompt_version": "summary-v1",
+  "scores": {
+    "llm": {
+      "rouge1": 0.19646220135117326,
+      "rouge2": 0.06782583117981002,
+      "rougeL": 0.1322101339756928,
+      "n": 40.0,
+      "skipped": 0.0,
+      "attribution": 0.65,
+      "unsupported": 0.23,
+      "contradicted": 0.12
+    },
+    "lead3": {
+      "rouge1": 0.08846103835255423,
+      "rouge2": 0.016463306086233392,
+      "rougeL": 0.06539572972351777,
+      "n": 40.0
+    },
+    "lexrank": {
+      "rouge1": 0.14535940025574626,
+      "rouge2": 0.03413448714703322,
+      "rougeL": 0.09888442084126076,
+      "n": 40.0
+    }
+  }
+}

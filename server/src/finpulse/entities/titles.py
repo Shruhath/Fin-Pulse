@@ -89,9 +89,33 @@ def _party(raw: str, role: str) -> TitleSubject | None:
     return TitleSubject(name, "person" if person else "company", role)
 
 
-def title_subjects(title: str) -> list[TitleSubject]:
+_RBI_PATTERNS = (
+    re.compile(r"(?:monetary\s+)?penalt(?:y|ies)\s+(?:on|against|in\s+respect\s+of)\s+(?P<who>.+)$", _I),
+    re.compile(r"(?:cancellation|cancels?|cancelled)\s+(?:of\s+)?(?:the\s+)?(?:certificate\s+of\s+registration|licen[cs]e)"
+               r"\s+(?:of|issued\s+to|granted\s+to)\s+(?P<who>.+)$", _I),
+    re.compile(r"^(?:directions|restrictions|order)\b.*?\s[–—-]\s+(?P<who>.+)$", _I),
+)  # fmt: skip
+
+
+def _rbi_subjects(text: str) -> list[TitleSubject]:
+    for pattern in _RBI_PATTERNS:
+        if m := pattern.search(text):
+            who = re.split(r"\s+(?:for|under|vide|due\s+to)\s", m.group("who"), maxsplit=1)[0]
+            who = re.sub(r"^the\s+", "", who, flags=_I)
+            who = re.sub(
+                r"(?i)((?:ltd|limited|bank|society)\.?),\s*[A-Z][A-Za-z .-]+$", r"\1", who
+            )  # ", Ulhasnagar"
+            party = _party(who, "subject")
+            if party:
+                return [TitleSubject(party.name, "company", "subject")]
+    return []
+
+
+def title_subjects(title: str, source: str | None = None) -> list[TitleSubject]:
     """Every party the title names, the one the order is against first."""
     text = " ".join(title.split())
+    if source == "RBI":
+        return _rbi_subjects(text)
     lead = _LEAD_IN.search(text)
     if lead is None:
         return []

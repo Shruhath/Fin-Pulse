@@ -38,9 +38,13 @@ jobs:
           enable-cache: true
           cache-dependency-glob: server/uv.lock
       - name: Install dependencies
-        run: uv sync --extra ml --frozen
+        run: uv sync --extra ml --extra neural --extra export --frozen
+      - name: The optional extras import (their tests must run, not skip)
+        run: uv run python -c "import torch, transformers, pyarrow, sklearn_crfsuite, sentencepiece"
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
+      - name: The OpenAPI contract is current
+        run: uv run finpulse openapi --check
       - name: Test
         run: uv run pytest
         env:
@@ -56,4 +60,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      - name: The generated API types are current
+        run: bun run gen:api && git diff --exit-code src/lib/api/schema.d.ts
       - run: bun run build

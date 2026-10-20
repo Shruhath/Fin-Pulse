@@ -1,4 +1,4 @@
-"""Rule-based event extraction for SEBI and NCLT documents.
+"""Rule-based event extraction for SEBI, NCLT and RBI documents.
 
 This is the deterministic baseline the LLM extractor is compared against. It reads the
 operative sentence of an order (where the penalty is imposed, the restraint directed, the
@@ -198,6 +198,34 @@ def _nclt_events(text: str, sents: list[_Sentence]) -> list[EventDraft]:
     return [EventDraft(EventType.NCLT_ADMISSION, trigger.span, args)]
 
 
+_RBI_PENALTY = re.compile(r"\bmonetary\s+penalty\b|\bpenalt(?:y|ies)\s+of\b", _I)
+_RBI_CANCEL = re.compile(
+    r"\bcancel(?:led|s|lation)\b[^.]{0,80}\b(?:licen[cs]e|certificate\s+of\s+registration)", _I
+)
+_RBI_DIRECTIONS = re.compile(r"\bdirections?\s+under\s+section\s+35A\b", _I)
+
+
+def _rbi_events(sents: list[_Sentence]) -> list[EventDraft]:
+    """Penalties, licence cancellations and Section 35A directions announced in an RBI press release."""
+    for action, pattern, needs_amount in (
+        ("monetary penalty", _RBI_PENALTY, True),
+        ("licence cancelled", _RBI_CANCEL, False),
+        ("directions", _RBI_DIRECTIONS, False),
+    ):
+        hits = [s for s in sents if pattern.search(s.text) and (find_amounts(s.text) or not needs_amount)]
+        if not hits:
+            continue
+        trigger = hits[0]
+        amount, all_amounts = _amount(trigger.text)
+        args = {"action": action}
+        if len(all_amounts) > 1 and amount is None:
+            args["amounts_stated"] = ", ".join(f"{a:f}" for a in all_amounts)
+        if provisions := _provisions(trigger.text):
+            args["provisions"] = provisions
+        return [EventDraft(EventType.RBI_ACTION, trigger.span, args, amount)]
+    return []
+
+
 def extract_events(
     *,
     source_kind: str,
@@ -211,6 +239,8 @@ def extract_events(
         drafts = _sebi_events(doc_type, sents)
     elif source_kind == "NCLT":
         drafts = _nclt_events(text, sents)
+    elif source_kind == "RBI":
+        drafts = _rbi_events(sents)
     else:
         drafts = []
     for d in drafts:

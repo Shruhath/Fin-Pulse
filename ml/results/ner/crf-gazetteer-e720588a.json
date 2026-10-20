@@ -1,0 +1,69 @@
+{
+  "version": "crf-gazetteer@e720588a",
+  "generated_at": "2026-10-19T13:38:15+00:00",
+  "git_sha": "4352dd0d4fc47dd3b2e987b605b43376ad6676fa",
+  "data_hash": "1af1b133246c447b5f942a821937c160aedb147a20da3471e7e319049440bede",
+  "train_sentences": 8908,
+  "dropped": {
+    "span not on token boundaries": 520
+  },
+  "training": {},
+  "rows": [
+    {
+      "stage": "ner",
+      "model": "Gazetteer rules",
+      "baseline": true,
+      "dataset": "FinEntity test",
+      "indian": false,
+      "metrics": {
+        "spanPrecision": 0.5,
+        "spanRecall": 0.005376344086021506,
+        "spanF1": 0.010638297872340427,
+        "n": 86.0,
+        "goldSpans": 186.0
+      }
+    },
+    {
+      "stage": "ner",
+      "model": "Gazetteer rules",
+      "baseline": true,
+      "dataset": "SEntFiN test",
+      "indian": true,
+      "metrics": {
+        "spanPrecision": 0.9313304721030042,
+        "spanRecall": 0.16062176165803108,
+        "spanF1": 0.273989898989899,
+        "n": 1020.0,
+        "goldSpans": 1351.0
+      }
+    },
+    {
+      "stage": "ner",
+      "model": "CRF + gazetteer (crf-gazetteer@e720588a)",
+      "baseline": true,
+      "dataset": "FinEntity test",
+      "indian": false,
+      "metrics": {
+        "spanPrecision": 0.8043478260869565,
+        "spanRecall": 0.7956989247311828,
+        "spanF1": 0.8,
+        "n": 86.0,
+        "goldSpans": 186.0
+      }
+    },
+    {
+      "stage": "ner",
+      "model": "CRF + gazetteer (crf-gazetteer@e720588a)",
+      "baseline": true,
+      "dataset": "SEntFiN test",
+      "indian": true,
+      "metrics": {
+        "spanPrecision": 0.8639876352395672,
+        "spanRecall": 0.8275351591413768,
+        "spanF1": 0.8453686200378072,
+        "n": 1020.0,
+        "goldSpans": 1351.0
+      }
+    }
+  ]
+}

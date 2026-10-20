@@ -54,3 +54,17 @@ def reliability(
         out.append({"confidence": mean_conf, "accuracy": acc, "n": n})
         ece += n / len(conf) * abs(acc - mean_conf)
     return out, float(ece)
+
+
+def mcnemar(gold: Sequence[str], pred_a: Sequence[str], pred_b: Sequence[str]) -> dict[str, float]:
+    """Exact McNemar test on the examples where exactly one of two models is right.
+
+    `a_only` counts examples only model A got right, `b_only` only model B. The p-value is two-sided.
+    """
+    from scipy.stats import binomtest
+
+    a_only = sum(g == a != b for g, a, b in zip(gold, pred_a, pred_b, strict=True))
+    b_only = sum(g == b != a for g, a, b in zip(gold, pred_a, pred_b, strict=True))
+    n = a_only + b_only
+    p = 1.0 if n == 0 else float(binomtest(min(a_only, b_only), n, 0.5).pvalue)
+    return {"a_only": float(a_only), "b_only": float(b_only), "p_value": p}

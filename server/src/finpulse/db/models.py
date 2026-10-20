@@ -38,7 +38,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
-EMBEDDING_DIM = 1024  # BAAI/bge-m3
+EMBEDDING_DIM = 768  # BAAI/bge-base-en-v1.5
 
 SOURCE_KINDS = ("BSE", "NSE", "SEBI", "RBI", "NCLT", "NEWS")
 DOC_STATUSES = ("ingested", "parsed", "analysed", "failed")
@@ -284,6 +284,7 @@ class Claim(Base):
     nli_contra: Mapped[float | None] = mapped_column(Float)
     evidence_sentence_id: Mapped[int | None] = mapped_column(ForeignKey("sentences.id", ondelete="SET NULL"))
     retrieval_rank: Mapped[int | None] = mapped_column(Integer)
+    cited: Mapped[list[int]] = mapped_column(JSONB, nullable=False, server_default=sql_text("'[]'::jsonb"))
 
     summary: Mapped[Summary] = relationship(back_populates="claims")
 
@@ -361,3 +362,43 @@ class EvalResult(Base):
     git_sha: Mapped[str | None] = mapped_column(String(40))
     data_hash: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+
+
+class Agreement(Base):
+    """Inter-annotator agreement on the calibration set, one row per task and measure."""
+
+    __tablename__ = "agreements"
+    __table_args__ = (UniqueConstraint("task", "measure", "annotators"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    task: Mapped[str] = mapped_column(String(24), nullable=False)
+    measure: Mapped[str] = mapped_column(String(24), nullable=False)  # cohen_kappa | fleiss_kappa | span_f1
+    annotators: Mapped[str] = mapped_column(String(96), nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    items: Mapped[int] = mapped_column(Integer, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+
+
+class GoldPassage(Base):
+    """A frozen passage that annotators label. Its text never changes once selected: the hash proves it."""
+
+    __tablename__ = "gold_passages"
+    __table_args__ = (
+        UniqueConstraint("doc_id", "char_start", "char_end"),
+        CheckConstraint("char_end > char_start", name="span"),
+        CheckConstraint("role IN ('calibration', 'gold', 'dev')", name="role"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    doc_id: Mapped[int] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    char_start: Mapped[int] = mapped_column(Integer, nullable=False)
+    char_end: Mapped[int] = mapped_column(Integer, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    text_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    stratum: Mapped[str] = mapped_column(String(64), nullable=False)
+    has_rule_event: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
+    role: Mapped[str] = mapped_column(String(12), nullable=False, server_default="gold")
+    ocr: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sql_text("false"))
+    ocr_engine: Mapped[str | None] = mapped_column(String(64))
+    ocr_dpi: Mapped[int | None] = mapped_column(Integer)
+    selected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())

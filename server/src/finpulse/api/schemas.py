@@ -144,6 +144,9 @@ class Claim(Api):
 class Summary(Api):
     id: str
     scope: Literal["document", "entity"]
+    subject: str | None = None
+    document_id: str | None = None
+    entity_id: str | None = None
     model: str
     generated_at: datetime
     claims: list[Claim]
@@ -187,6 +190,7 @@ class MetricRow(Api):
     dataset: str
     indian: bool
     metrics: dict[str, float]
+    p_value_vs_baseline: float | None = None  # McNemar's exact test against the TF-IDF baseline
     git_sha: str | None = None
     created_at: datetime | None = None
 
@@ -270,10 +274,39 @@ class SearchIndex(Api):
     filings: list[SearchFiling]
 
 
+class SearchHit(Api):
+    document_id: str
+    title: str
+    source: SourceKind
+    published_at: date | None
+    snippet: str  # the best matching sentence with the query terms in <mark> tags
+
+
+class SearchResults(Api):
+    query: str
+    companies: list[SearchCompany]
+    filings: list[SearchHit]
+
+
+class RunRecord(Api):
+    """One execution of a pipeline stage: the recorded evidence behind every stored prediction."""
+
+    id: str
+    stage: str
+    model: str | None
+    prompt_version: str | None
+    params: dict[str, object]
+    status: Literal["running", "done", "failed"]
+    started_at: datetime
+    latency_ms: int | None
+    error: str | None
+
+
 class Health(Api):
     status: Literal["ok", "degraded"]
     database: bool
     ollama: bool
+    ollama_models: list[str]
     gpu: str | None
     tesseract: str | None
     sentiment_model: str | None

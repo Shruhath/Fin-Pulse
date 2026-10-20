@@ -29,13 +29,16 @@ def evaluation(db: Annotated[Session, Depends(get_db)]) -> s.EvalReport:
             dataset=r.dataset,
             indian=r.indian,
             metrics={k: float(v) for k, v in r.metrics.items()},
+            p_value_vs_baseline=((r.detail or {}).get("mcnemar_vs_tfidf") or {}).get("p_value"),
             git_sha=r.git_sha,
             created_at=r.created_at,
         )
         for r in results
     ]
     with_detail = [r for r in results if r.stage == "sentiment" and r.detail]
-    shown = next((r for r in with_detail if r.indian), with_detail[0] if with_detail else None)
+    shown = min(
+        with_detail, key=lambda r: (r.baseline, not r.indian), default=None
+    )  # the proposed model first
     confusion = reliability = None
     if shown is not None:
         confusion = s.Confusion(
@@ -44,13 +47,17 @@ def evaluation(db: Annotated[Session, Depends(get_db)]) -> s.EvalReport:
             labels=shown.detail["labels"],
             matrix=shown.detail["confusion"],
         )
+        calibrated = "reliability_before" in shown.detail
         reliability = s.Reliability(
             model=shown.model,
             dataset=shown.dataset,
-            before=[s.ReliabilityBin(**b) for b in shown.detail["reliability"]],
-            after=None,  # calibration has not been run for this model
-            ece_before=float(shown.metrics["ece"]),
-            ece_after=None,
+            before=[
+                s.ReliabilityBin(**b)
+                for b in shown.detail["reliability_before" if calibrated else "reliability"]
+            ],
+            after=[s.ReliabilityBin(**b) for b in shown.detail["reliability"]] if calibrated else None,
+            ece_before=float(shown.metrics["ece_before" if calibrated else "ece"]),
+            ece_after=float(shown.metrics["ece"]) if calibrated else None,
         )
     return s.EvalReport(
         generated_at=max((r.created_at for r in results), default=None),

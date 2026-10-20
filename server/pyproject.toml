@@ -29,6 +29,22 @@ ml = [
   "scikit-learn>=1.5",
   "joblib>=1.4",
   "numpy>=1.26",
+  "sklearn-crfsuite>=0.5",
+]
+# Encoders: FinBERT fine-tuning, NLI verification and bge-m3 embeddings. The default PyPI wheel
+# for Linux is built for CUDA 12.8, which includes the Blackwell (sm_120) GPU this runs on.
+neural = [
+  "torch>=2.8",
+  "transformers>=4.46",
+  "sentencepiece>=0.2",  # DeBERTa-v3 tokenizers are built from a sentencepiece model
+  "protobuf>=4.25",
+  "scikit-learn>=1.5",
+  "joblib>=1.4",
+  "numpy>=1.26",
+  "sklearn-crfsuite>=0.5",
+]
+export = [
+  "pyarrow>=17",
 ]
 
 [project.scripts]

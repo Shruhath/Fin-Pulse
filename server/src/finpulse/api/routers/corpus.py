@@ -98,10 +98,30 @@ def events(
     window: Annotated[s.Window | None, Query()] = None,
     type_: Annotated[str | None, Query(alias="type")] = None,
     entity: Annotated[str | None, Query()] = None,
+    extractor: Annotated[str, Query(pattern="^(best|llm|rules)$")] = "best",
     limit: Annotated[int, Query(ge=1, le=1000)] = 500,
 ) -> list[s.EventRecord]:
-    rows = q.event_markers(db, window=window, entity_slug=entity, event_type=type_, limit=limit)
-    return [q.to_record(*r) for r in rows]
+    rows = q.event_markers(
+        db, window=window, entity_slug=entity, event_type=type_, extractor=extractor, limit=limit
+    )
+    return q.event_records(db, rows)
+
+
+@router.get("/summaries", response_model=list[s.Summary])
+def summaries(
+    db: Db,
+    entity: Annotated[str | None, Query()] = None,
+    window: Annotated[s.Window | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> list[s.Summary]:
+    return q.list_summaries(db, entity_slug=entity, window=window, limit=limit)
+
+
+@router.get("/search", response_model=s.SearchResults)
+def search_corpus(
+    db: Db, q_: Annotated[str, Query(alias="q", min_length=2, max_length=200)]
+) -> s.SearchResults:
+    return q.search(db, q_)
 
 
 @router.get("/search/index", response_model=s.SearchIndex)

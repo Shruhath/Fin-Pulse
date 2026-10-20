@@ -1,0 +1,10 @@
+[Unit]
+Description=FinPulse: daily RBI press release collection
+
+[Timer]
+# the feed only carries the latest items, so a daily run is what builds the archive
+OnCalendar=*-*-* 19:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
