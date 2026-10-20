@@ -2,7 +2,7 @@
 SERVER = cd server &&
 COMPOSE = docker compose -f infra/docker-compose.yml
 
-.PHONY: up down migrate ingest pipeline train eval api worker web test lint llm export openapi
+.PHONY: up down migrate ingest pipeline train eval api worker web live test lint llm export openapi
 
 up:            ## start PostgreSQL (pgvector) and the private GPU Ollama
 	$(COMPOSE) up -d db
@@ -36,6 +36,9 @@ worker:
 
 web:
 	cd web && bun run dev
+
+live:          ## database, local LLMs, API, worker and web app together, on real data
+	scripts/live.sh
 
 llm:           ## pull the two local models
 	scripts/ollama-local.sh pull
