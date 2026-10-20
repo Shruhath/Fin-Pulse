@@ -103,6 +103,7 @@ export type AskStage = S["AskStage"];
 export type AskPassage = S["AskPassage"];
 export type AskAnswer = S["AskAnswer"];
 export type AskJob = S["AskJob"];
+export type Transcription = S["Transcription"];
 
 /* ---------- launcher index ---------- */
 

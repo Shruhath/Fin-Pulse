@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowUp, CheckCircle2, Circle, Loader2, XCircle } from "lucide-react";
+import { ArrowUp, CheckCircle2, Circle, Loader2, Mic, Square, Volume2, VolumeX, XCircle } from "lucide-react";
 import clsx from "clsx";
 
 import { ClaimRow, filingHref } from "@/components/tiles/verified-summary";
@@ -11,8 +11,11 @@ import { Empty } from "@/components/ui/states";
 import { Workspace } from "@/components/wm/workspace";
 import { problem } from "@/lib/api/problem";
 import { getServerTurns, getTurns, subscribe, updateTurns, type Turn } from "@/lib/ask-store";
-import type { AskAnswer, AskJob, AskStage } from "@/lib/api/types";
+import type { AskAnswer, AskJob, AskStage, Transcription } from "@/lib/api/types";
 import { fmtDay } from "@/lib/format";
+import { useBooleanPref } from "@/lib/pref-store";
+import { speak, spokenAnswer, stopSpeaking, useCanSpeak } from "@/lib/speak";
+import { describeMicError, listen, type Listener, useVoiceSupported } from "@/lib/voice";
 
 const API = process.env.NEXT_PUBLIC_FINPULSE_API_URL ?? "http://127.0.0.1:8000";
 const MAX_QUESTION = 500;
@@ -34,7 +37,7 @@ const finished = (t: Turn) => !!t.error || t.job?.status === "done" || t.job?.st
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
-export function AskWorkspace({ preview, suggestions }: { preview: boolean; suggestions: string[] }) {
+export function AskWorkspace({ preview, suggestions, voiceModel }: { preview: boolean; suggestions: string[]; voiceModel: string | null }) {
   const turns = useSyncExternalStore(subscribe, getTurns, getServerTurns);
   const alive = useRef(true);
   const following = useRef(new Set<string>());
@@ -111,7 +114,7 @@ export function AskWorkspace({ preview, suggestions }: { preview: boolean; sugge
           weight: 3,
           flush: true,
           mobileMinH: 520,
-          node: <Chat turns={turns} busy={busy} preview={preview} suggestions={suggestions} onAsk={ask} />,
+          node: <Chat turns={turns} busy={busy} preview={preview} suggestions={suggestions} voiceModel={voiceModel} onAsk={ask} />,
         },
         {
           id: "suggestions",
@@ -137,16 +140,82 @@ function Chat({
   busy,
   preview,
   suggestions,
+  voiceModel,
   onAsk,
 }: {
   turns: Turn[];
   busy: boolean;
   preview: boolean;
   suggestions: string[];
+  voiceModel: string | null;
   onAsk: (q: string) => void;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [mic, setMic] = useState<"idle" | "listening" | "transcribing">("idle");
+  const [level, setLevel] = useState(0);
+  const [note, setNote] = useState<string | null>(null);
+  const [autoSend, setAutoSend] = useBooleanPref("finpulse.ask.autosend");
+  const listener = useRef<Listener | null>(null);
+  const cancelled = useRef(false);
+  const supported = useVoiceSupported();
+  const micReady = !preview && !!voiceModel && supported;
+  const micTitle = preview
+    ? "Preview mode has no pipeline"
+    : !supported
+      ? "Voice needs a microphone and a secure page (localhost or https)"
+      : !voiceModel
+        ? "The speech model is not installed (scripts/fetch_models.py asr)"
+        : mic === "listening"
+          ? "Stop and use what you said"
+          : "Speak your question";
+
+  // leaving the page ends a recording in progress
+  useEffect(() => () => listener.current?.cancel(), []);
+
+  const speakQuestion = async () => {
+    if (mic === "listening") return listener.current?.stop();
+    if (mic !== "idle") return;
+    stopSpeaking();
+    cancelled.current = false;
+    setNote(null);
+    try {
+      const l = await listen({ onLevel: setLevel });
+      listener.current = l;
+      setMic("listening");
+      const wav = await l.result;
+      listener.current = null;
+      if (cancelled.current) return setMic("idle");
+      if (!wav) {
+        setMic("idle");
+        return setNote("I did not hear anything. Try again, closer to the microphone.");
+      }
+      setMic("transcribing");
+      const res = await fetch(`${API}/api/transcribe`, { method: "POST", headers: { "content-type": "audio/wav" }, body: wav });
+      if (!res.ok) throw new Error(await problem(res));
+      const { text } = (await res.json()) as Transcription;
+      setMic("idle");
+      if (!text.trim()) return setNote("I could not make out any words. Try again.");
+      if (autoSend && !busy) {
+        setDraft("");
+        onAsk(text);
+      } else {
+        setDraft(text);
+        setNote(`Heard: “${text}”. Edit it if needed, then press enter.`);
+        inputRef.current?.focus();
+      }
+    } catch (e) {
+      listener.current = null;
+      setMic("idle");
+      setNote(describeMicError(e));
+    }
+  };
+
+  const cancelListening = () => {
+    cancelled.current = true;
+    listener.current?.cancel();
+  };
   const last = turns[turns.length - 1];
   const lastState = last ? `${last.id}:${last.job?.status ?? ""}:${last.error ?? ""}` : "";
 
@@ -174,6 +243,12 @@ function Chat({
               do not answer, you are told so instead of getting a guess. Each question is answered on its own; earlier ones are
               not remembered.
             </p>
+            {micReady && (
+              <p className="text-sm leading-relaxed text-ink-2">
+                You can also speak: press the microphone and ask. Speech is turned into text on this computer by a local
+                model ({voiceModel}); the recording is not stored or sent anywhere.
+              </p>
+            )}
             {suggestions.length > 0 && (
               <ul className="flex flex-col items-start gap-1.5 pt-1">
                 {suggestions.map((s) => (
@@ -200,12 +275,34 @@ function Chat({
         )}
         <div ref={endRef} />
       </div>
-      <form onSubmit={submit} className="flex items-end gap-2 border-t border-line bg-surface p-2">
+      <form onSubmit={submit} className="border-t border-line bg-surface p-2">
+        <p role="status" className="mb-1.5 flex min-h-4 items-center gap-2 font-mono text-2xs text-ink-3">
+          {mic === "listening" ? (
+            <>
+              <span className="h-1.5 w-24 overflow-hidden bg-surface-3" aria-hidden="true">
+                <span className="block h-full bg-accent transition-[width] duration-75" style={{ width: `${Math.round(level * 100)}%` }} />
+              </span>
+              <span className="text-ink">listening, stops when you pause</span>
+              <button type="button" onClick={cancelListening} className="text-link hover:underline">
+                cancel
+              </button>
+            </>
+          ) : mic === "transcribing" ? (
+            <>
+              <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+              <span>turning your speech into text on this computer…</span>
+            </>
+          ) : (
+            note
+          )}
+        </p>
+        <div className="flex items-end gap-2">
         <label htmlFor="ask-q" className="sr-only">
           Your question
         </label>
         <textarea
           id="ask-q"
+          ref={inputRef}
           rows={2}
           value={draft}
           maxLength={MAX_QUESTION}
@@ -215,11 +312,27 @@ function Chat({
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               e.currentTarget.form?.requestSubmit();
+            } else if (e.key === "Escape" && mic === "listening") {
+              cancelListening();
             }
           }}
-          placeholder={busy ? "Answering…" : "What action did SEBI take against…?"}
+          placeholder={busy ? "Answering…" : mic === "listening" ? "Listening…" : "What action did SEBI take against…?"}
           className="min-h-12 flex-1 resize-none border border-line bg-surface-2 p-2 text-sm leading-snug text-ink outline-none focus:border-ring disabled:opacity-40"
         />
+        <button
+          type="button"
+          onClick={speakQuestion}
+          disabled={!micReady || mic === "transcribing"}
+          aria-label={mic === "listening" ? "Stop listening" : "Speak your question"}
+          aria-pressed={mic === "listening"}
+          title={micTitle}
+          className={clsx(
+            "inline-flex h-12 w-10 items-center justify-center border transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+            mic === "listening" ? "border-neg bg-neg-weak text-neg" : "border-line-strong text-ink hover:border-ring",
+          )}
+        >
+          {mic === "listening" ? <Square className="size-4" aria-hidden="true" /> : <Mic className="size-4" aria-hidden="true" />}
+        </button>
         <button
           type="submit"
           disabled={busy || preview || draft.trim().length < 3}
@@ -228,6 +341,13 @@ function Chat({
         >
           {busy ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ArrowUp className="size-4" aria-hidden="true" />}
         </button>
+        </div>
+        {micReady && (
+          <label className="mt-1.5 flex items-center gap-2 font-mono text-2xs text-ink-3">
+            <input type="checkbox" checked={autoSend} onChange={(e) => setAutoSend(e.target.checked)} />
+            send the question when I stop talking
+          </label>
+        )}
       </form>
     </div>
   );
@@ -289,6 +409,31 @@ function Progress({ stages, queued }: { stages: AskStage[]; queued: boolean }) {
   );
 }
 
+function ListenButton({ answer }: { answer: AskAnswer }) {
+  const canSpeak = useCanSpeak();
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => () => stopSpeaking(), []);
+  if (!canSpeak) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (speaking) {
+          stopSpeaking();
+          setSpeaking(false);
+        } else {
+          setSpeaking(true);
+          speak(spokenAnswer(answer), () => setSpeaking(false));
+        }
+      }}
+      className="ml-2 inline-flex items-center gap-1 text-link hover:underline"
+    >
+      {speaking ? <VolumeX className="size-3" aria-hidden="true" /> : <Volume2 className="size-3" aria-hidden="true" />}
+      {speaking ? "stop" : "listen"}
+    </button>
+  );
+}
+
 function AnswerView({ answer }: { answer: AskAnswer }) {
   const supported = answer.claims.filter((c) => c.verification === "entailed").length;
   const documents = new Set(answer.passages.map((p) => p.documentId)).size;
@@ -335,6 +480,7 @@ function AnswerView({ answer }: { answer: AskAnswer }) {
         {answer.sources.length > 0 && <>{answer.sources.join(", ")} only · </>}
         {answer.passages.length > 0 && <>{answer.retrieval} · {answer.model} · </>}
         {answer.seconds.toFixed(1)} s
+        <ListenButton answer={answer} />
       </p>
       {answer.passages.length > 0 && (
         <details className="group border border-line">
