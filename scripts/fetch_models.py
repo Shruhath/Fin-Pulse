@@ -19,11 +19,14 @@ MODELS = {
     "ner": ("microsoft/deberta-v3-base", [*TOKENIZER, "pytorch_model.bin"]),
     "nli": ("MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli", [*TOKENIZER, "*.safetensors", "pytorch_model.bin"]),
     "embed": ("BAAI/bge-base-en-v1.5", [*TOKENIZER, "*.safetensors"]),
+    # spoken questions: transcribed on this machine; asr-small is slower and better with accents and names
+    "asr": ("openai/whisper-base.en", [*TOKENIZER, "*.safetensors"]),
+    "asr-small": ("openai/whisper-small.en", [*TOKENIZER, "*.safetensors"]),
 }
 
 
 def main(names: list[str]) -> int:
-    wanted = names or list(MODELS)
+    wanted = names or [n for n in MODELS if n != "asr-small"]
     unknown = [n for n in wanted if n not in MODELS]
     if unknown:
         print(f"unknown: {', '.join(unknown)}; choose from {', '.join(MODELS)}", file=sys.stderr)

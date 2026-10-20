@@ -1361,6 +1361,17 @@
       },
       "Health": {
         "properties": {
+          "asrModel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asrmodel"
+          },
           "database": {
             "title": "Database",
             "type": "boolean"
@@ -1430,6 +1441,7 @@
           "gpu",
           "tesseract",
           "sentimentModel",
+          "asrModel",
           "queuedJobs"
         ],
         "title": "Health",
@@ -2342,6 +2354,29 @@
           "claims"
         ],
         "title": "Summary",
+        "type": "object"
+      },
+      "Transcription": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "seconds",
+          "model"
+        ],
+        "title": "Transcription",
         "type": "object"
       },
       "ValidationError": {
@@ -3407,6 +3442,36 @@
           }
         },
         "summary": "Summaries"
+      }
+    },
+    "/api/transcribe": {
+      "post": {
+        "description": "Transcribe a PCM WAV recording (16 kHz mono is what the web app sends, up to 60 seconds).\n\nNothing is stored: the audio is decoded in memory and dropped. A recording with no speech in it\nreturns an empty `text` instead of a guess.",
+        "operationId": "transcribe_api_transcribe_post",
+        "requestBody": {
+          "content": {
+            "audio/wav": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transcription"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Transcribe"
       }
     },
     "/api/wallpaper": {

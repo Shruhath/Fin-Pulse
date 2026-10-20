@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from finpulse.core.logging import configure_logging
 from finpulse.core.settings import get_settings
 
-from .routers import analyze, ask, corpus, eval, system
+from .routers import analyze, ask, corpus, eval, system, voice
 
 
 def create_app() -> FastAPI:
@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
-    for router in (corpus.router, eval.router, analyze.router, ask.router, system.router):
+    for router in (corpus.router, eval.router, analyze.router, ask.router, voice.router, system.router):
         app.include_router(router, prefix="/api")
     return app
 
