@@ -7,6 +7,18 @@ import { useGSAP } from "@gsap/react";
 
 import type { Confusion, MetricRow, ReliabilityBin } from "@/lib/api/types";
 
+/** Break a long model name into at most three lines of `max` characters, at spaces. */
+function wrapLabel(text: string, max: number): string[] {
+  const lines: string[] = [];
+  for (const word of text.split(" ")) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + word.length <= max) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  if (lines.length > 3) lines.splice(3, lines.length - 3, `${lines.slice(2).join(" ").slice(0, max - 1)}…`);
+  return lines;
+}
+
 function useSize<T extends HTMLElement>(minH: number) {
   const ref = useRef<T>(null);
   const [size, setSize] = useState({ w: 0, h: minH });
@@ -33,7 +45,8 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg || size.w === 0) return;
-    const M = { top: 28, right: 24, bottom: 34, left: Math.min(220, size.w * 0.38) };
+    const M = { top: 28, right: 24, bottom: 34, left: Math.min(250, size.w * 0.42) };
+    const labelChars = Math.max(12, Math.floor((M.left - 14) / 6.8));
     const innerW = size.w - M.left - M.right;
     const innerH = Math.min(size.h - M.top - M.bottom, models.length * 76);
     const x = d3.scaleLinear().domain([0.4, 1]).range([0, innerW]);
@@ -49,15 +62,17 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
       const rs = rows.filter((r) => r.model === m);
       const baseline = rs[0]?.baseline;
       const cy = y(m)! + y.bandwidth() / 2;
-      g.append("text")
+      const lines = wrapLabel(m, labelChars);
+      const label = g
+        .append("text")
         .attr("x", -14)
-        .attr("y", cy)
-        .attr("dy", "0.32em")
+        .attr("y", cy - ((lines.length - 1) * 15) / 2)
         .attr("text-anchor", "end")
         .attr("fill", baseline ? "var(--text-2)" : "var(--text)")
         .attr("font-weight", baseline ? 400 : 600)
-        .attr("font-size", 12.5)
-        .text(m);
+        .attr("font-size", 12.5);
+      lines.forEach((line, i) => label.append("tspan").attr("x", -14).attr("dy", i === 0 ? "0.32em" : 15).text(line));
+      label.append("title").text(m);
       const vals = rs.map((r) => r.metrics.macroF1);
       const lo = d3.min(vals)!;
       const hi = d3.max(vals)!;
@@ -187,14 +202,16 @@ export function Reliability({ before, after, eceBefore, eceAfter }: { before: Re
     if (!svg || size.w === 0) return;
     const M = { top: 10, right: 14, bottom: 34, left: 40 };
     const side = Math.min(size.w - M.left - M.right, size.h - M.top - M.bottom);
-    const x = d3.scaleLinear().domain([0.3, 1]).range([0, side]);
-    const y = d3.scaleLinear().domain([0.3, 1]).range([side, 0]);
+    // low-confidence bins can be far below the diagonal; widen both axes so none is cut off
+    const floor = Math.min(0.3, Math.floor(Math.min(...[...before, ...(after ?? [])].map((b) => Math.min(b.accuracy, b.confidence))) * 10) / 10);
+    const x = d3.scaleLinear().domain([floor, 1]).range([0, side]);
+    const y = d3.scaleLinear().domain([floor, 1]).range([side, 0]);
     const root = d3.select(svg);
     root.selectAll("*").remove();
     const g = root.append("g").attr("transform", `translate(${M.left},${M.top})`);
     g.append("g").attr("class", "fp-axis").attr("transform", `translate(0,${side})`).call(d3.axisBottom(x).ticks(4).tickSize(-side).tickPadding(6));
     g.append("g").attr("class", "fp-axis").call(d3.axisLeft(y).ticks(4).tickSize(-side).tickPadding(6));
-    g.append("line").attr("x1", x(0.3)).attr("y1", y(0.3)).attr("x2", x(1)).attr("y2", y(1)).attr("stroke", "var(--chart-zero)").attr("stroke-dasharray", "3 3");
+    g.append("line").attr("x1", x(floor)).attr("y1", y(floor)).attr("x2", x(1)).attr("y2", y(1)).attr("stroke", "var(--chart-zero)").attr("stroke-dasharray", "3 3");
     const line = d3.line<ReliabilityBin>().x((d) => x(d.confidence)).y((d) => y(d.accuracy));
     g.append("path").datum(before).attr("d", line).attr("fill", "none").attr("stroke", "var(--text-3)").attr("stroke-width", 1.5);
     if (after) g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2);
