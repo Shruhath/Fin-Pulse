@@ -69,7 +69,8 @@ def test_silence_and_clips_too_short_to_hold_a_word_have_no_speech():
 def test_the_prompt_names_the_companies_and_stays_within_whispers_limit():
     prompt = build_prompt(["Wipro Limited", "Rajesh Exports Limited"])
     assert "Wipro Limited" in prompt and "Rajesh Exports Limited" in prompt and "SEBI" in prompt
-    assert len(build_prompt(["A Very Long Company Name Limited"] * 100)) <= 500
+    crowded = build_prompt([f"Company Number {i}" for i in range(200)])
+    assert len(crowded) <= 700 and crowded.endswith(tuple("0123456789.")) and ",." not in crowded
 
 
 def test_a_looping_or_echoed_transcript_is_discarded():
@@ -95,8 +96,8 @@ def test_a_missing_speech_model_is_reported_not_downloaded():
 @pytest.mark.db
 def test_the_prompt_vocabulary_is_the_companies_most_filings_mention(db):
     vocabulary._cache = None
-    big = Entity(slug="big-co", canonical_name="Big Company Limited")
-    small = Entity(slug="small-co", canonical_name="Small Company Limited")
+    big = Entity(slug="big-co", canonical_name="Alpha Textiles Limited")
+    small = Entity(slug="small-co", canonical_name="BETA FOODS PRIVATE LIMITED")
     person = Entity(slug="p", canonical_name="Some Person", kind="person")
     db.add_all([big, small, person])
     db.flush()
@@ -121,7 +122,8 @@ def test_the_prompt_vocabulary_is_the_companies_most_filings_mention(db):
         Mention(doc_id=pasted.id, entity_id=small.id, char_start=0, char_end=1, surface="x", ner_model="t")
     )
     db.flush()
-    assert vocabulary.top_company_names(db) == ["Big Company Limited", "Small Company Limited"]
+    # spoken form: no legal suffix and not in capitals; the company in more filings comes first
+    assert vocabulary.top_company_names(db) == ["Alpha Textiles", "Beta Foods"]
     vocabulary._cache = None
 
 

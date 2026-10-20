@@ -21,7 +21,7 @@ from finpulse.core.settings import get_settings
 
 log = logging.getLogger(__name__)
 
-MAX_PROMPT_CHARS = 500  # Whisper reads at most 224 prompt tokens
+MAX_PROMPT_CHARS = 700  # Whisper reads at most 224 prompt tokens, about 900 characters of names
 
 
 class TranscriberUnavailable(RuntimeError):
@@ -50,9 +50,13 @@ _HEAD = "A question about SEBI, NCLT and RBI filings, such as a penalty of Rs. 2
 
 def build_prompt(names: list[str]) -> str:
     """A prompt that sounds like the questions asked, followed by the names to spell correctly."""
-    head = _HEAD
-    tail = " Companies: " + ", ".join(names) + "." if names else ""
-    return (head + tail)[:MAX_PROMPT_CHARS]
+    prompt = _HEAD + (" Companies:" if names else "")
+    for i, name in enumerate(names):
+        piece = f" {name}," if i < len(names) - 1 else f" {name}."
+        if len(prompt) + len(piece) > MAX_PROMPT_CHARS:
+            break  # whole names only: half a name would teach the model a wrong spelling
+        prompt += piece
+    return prompt[:-1] + "." if prompt.endswith(",") else prompt
 
 
 def clean_text(text: str, prompt: str | None) -> str:
