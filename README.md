@@ -52,7 +52,7 @@ server/   Python package `finpulse`: ingest, parsing, pipeline stages, job queue
 web/      Next.js app: a start page and the app behind it (Home, Companies, Filings, Ask, and Events, Analyze, Evaluation and Method under Insights); its API types are generated from server/openapi.json
 infra/    docker compose for PostgreSQL + pgvector and the optional annotation tool
 scripts/  local model server, model download, one-command stack
-docs/     PLAN.md (design), BACKEND.md (how it runs and what it measured), DATASET_CARD.md, ANALYSIS.md
+docs/     APP_GUIDE.md (what every page and tab does), BACKEND_FLOW.md (what runs behind each click), PLAN.md (design), BACKEND.md (how it runs and what it measured), DATASET_CARD.md, ANALYSIS.md
 annotation/  Label Studio setup for the gold labels
 ml/       results of every training and evaluation run, kept so a number traces to a commit
 ```
