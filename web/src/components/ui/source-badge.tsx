@@ -13,7 +13,7 @@ export function SourceBadge({ kind }: { kind: SourceKind }) {
   return (
     <abbr
       title={NAMES[kind]}
-      className="inline-flex h-[18px] min-w-10 items-center justify-center border border-line-strong px-1 font-mono text-[10px] font-semibold text-ink-2 no-underline"
+      className="inline-flex h-5 min-w-11 items-center justify-center rounded-md bg-surface-3 px-1.5 text-[0.6875rem] font-bold tracking-wide text-ink-2 no-underline"
     >
       {kind}
     </abbr>

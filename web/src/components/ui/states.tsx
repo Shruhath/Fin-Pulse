@@ -1,32 +1,31 @@
-import { PlugZap } from "lucide-react";
+import { FileSearch, PlugZap } from "lucide-react";
 
-/** Whole-workspace state when the API cannot be reached. */
+/** Whole-page state when the API cannot be reached. */
 export function OfflineState({ message }: { message: string }) {
   return (
-    <div className="flex h-full items-center justify-center p-(--gap)">
-      <section className="w-full max-w-lg border border-line bg-surface">
-        <header className="flex h-8 items-center gap-2 border-b border-line bg-surface-2 px-2.5 font-mono text-2xs">
-          <span className="font-semibold text-warn">status</span>
-          <span className="text-ink-3">·</span>
-          <h1 className="font-medium text-ink-2">no data</h1>
-        </header>
-        <div className="space-y-3 p-4">
-          <PlugZap className="size-5 text-warn" strokeWidth={1.75} aria-hidden="true" />
-          <p className="text-base text-ink">{message}</p>
-          <p className="text-sm text-ink-2">
-            Start the API with <code className="bg-surface-2 px-1.5 py-0.5 font-mono text-xs">make api</code>, or set{" "}
-            <code className="bg-surface-2 px-1.5 py-0.5 font-mono text-xs">FINPULSE_PREVIEW=1</code> to work on the
-            interface with labelled synthetic data.
-          </p>
-        </div>
-      </section>
+    <div className="mx-auto flex max-w-lg flex-col items-center py-20 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-warn-weak text-warn">
+        <PlugZap className="size-7" strokeWidth={1.75} aria-hidden="true" />
+      </span>
+      <h1 className="display mt-5 text-xl text-ink">Nothing to show yet</h1>
+      <p className="mt-2 text-base text-ink-2">{message}</p>
+      <p className="mt-4 text-sm text-ink-3">
+        Start the API with <code className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-xs">make live</code>, or run{" "}
+        <code className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-xs">scripts/live.sh preview</code> to look around on clearly labelled
+        synthetic data.
+      </p>
     </div>
   );
 }
 
-/** Empty state inside a window. */
-export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="flex h-full min-h-24 items-center justify-center px-4 py-8 text-center text-sm text-ink-3">{children}</p>;
+/** Empty state inside a section. Says what would fill it. */
+export function Empty({ children, icon = true }: { children: React.ReactNode; icon?: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line-strong px-6 py-10 text-center text-sm text-ink-3">
+      {icon && <FileSearch className="size-6 text-ink-3/70" strokeWidth={1.6} aria-hidden="true" />}
+      <p className="max-w-[46ch]">{children}</p>
+    </div>
+  );
 }
 
 /** A not-found state for a selected record. */

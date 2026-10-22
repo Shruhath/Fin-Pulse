@@ -110,7 +110,7 @@ export function EntityChart({ series, events, name }: { series: SeriesPoint[]; e
     if (!hover) return;
     const cx = x(day(hover.t));
     cross.append("line").attr("x1", cx).attr("x2", cx).attr("y1", 0).attr("y2", innerH).attr("stroke", "var(--border-strong)");
-    cross.append("circle").attr("cx", cx).attr("cy", y(hover.v)).attr("r", 3.5).attr("fill", "var(--accent)").attr("stroke", "var(--surface)").attr("stroke-width", 2);
+    cross.append("circle").attr("cx", cx).attr("cy", y(hover.v)).attr("r", 3.5).attr("fill", "var(--brand)").attr("stroke", "var(--surface)").attr("stroke-width", 2);
   }, [hover, x, y, innerH]);
 
   useGSAP(
@@ -137,7 +137,7 @@ export function EntityChart({ series, events, name }: { series: SeriesPoint[]; e
         className="absolute inset-0"
       />
       {hover && (
-        <p className="pointer-events-none absolute top-1 right-2 border border-line-strong bg-surface px-2 py-1 font-mono text-2xs text-ink-2">
+        <p className="pointer-events-none absolute top-1 right-2 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs text-ink-2 shadow-1">
           {fmtDayLong(hover.t)} · <span className="font-semibold text-ink">{fmtScore(hover.v)}</span>
         </p>
       )}
