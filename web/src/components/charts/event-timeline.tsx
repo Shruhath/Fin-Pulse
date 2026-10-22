@@ -83,7 +83,7 @@ export function EventTimeline({
       .attr("dy", "0.32em")
       .attr("text-anchor", "end")
       .attr("fill", "var(--text-2)")
-      .attr("font-family", "var(--font-mono)")
+      .attr("font-family", "var(--font-sans)")
       .attr("font-size", 11)
       .text((d) => d.toLowerCase());
     lanes
@@ -95,7 +95,7 @@ export function EventTimeline({
       .attr("y", (d) => y(d)! + y.bandwidth() / 2 + 14)
       .attr("text-anchor", "end")
       .attr("fill", "var(--text-3)")
-      .attr("font-family", "var(--font-mono)")
+      .attr("font-family", "var(--font-sans)")
       .attr("font-size", 10)
       .text((d) => `${events.filter((e) => e.group === d).length} events`);
 

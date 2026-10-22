@@ -289,12 +289,6 @@ export function previewSearchIndex(): SearchIndex {
   };
 }
 
-/** Entities × days matrix of scores for the desktop wallpaper contours. */
-export function previewWallpaper(): number[][] {
-  const rows = COMPANIES.map(([id]) => series().get(id)!.slice(-90).map((p) => p.v));
-  return rows.sort((a, b) => a[a.length - 1] - b[b.length - 1]);
-}
-
 export function previewEval(): EvalReport {
   const S = "sentiment" as const;
   return {

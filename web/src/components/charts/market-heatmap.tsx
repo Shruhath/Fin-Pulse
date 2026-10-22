@@ -15,7 +15,7 @@ const STRIP_H = 56; // market mean strip
 const STRIP_GAP = 14;
 const AXIS_H = 24;
 const SCORE_W = 64;
-const MIN_ROW = 13;
+const MIN_ROW = 20;
 
 const dayKey = (iso: string) => iso.slice(0, 10);
 const asDate = (k: string) => new Date(`${k}T00:00:00Z`);
@@ -70,7 +70,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
     return m;
   }, [events]);
 
-  const labelW = Math.min(184, Math.max(110, size.w * 0.2));
+  const labelW = Math.min(300, Math.max(150, size.w * 0.3));
   const gridW = Math.max(0, size.w - labelW - SCORE_W - 12);
   const gridTop = STRIP_H + STRIP_GAP;
   const rowH = Math.max(MIN_ROW, (size.h - gridTop - AXIS_H) / Math.max(rows.length, 1));
@@ -133,7 +133,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
       .attr("y", 18)
       .attr("text-anchor", "end")
       .attr("fill", "var(--text-2)")
-      .attr("font-family", "var(--font-mono)")
+      .attr("font-family", "var(--font-sans)")
       .attr("font-size", 10.5)
       .text("market mean");
     root
@@ -142,7 +142,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
       .attr("y", 32)
       .attr("text-anchor", "end")
       .attr("fill", "var(--text-3)")
-      .attr("font-family", "var(--font-mono)")
+      .attr("font-family", "var(--font-sans)")
       .attr("font-size", 10)
       .text("±1σ, scale −1…+1");
     const last = market[market.length - 1];
@@ -151,7 +151,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
       .attr("x", labelW + gridW + 10)
       .attr("y", sy(last.mean) + 4)
       .attr("fill", "var(--text)")
-      .attr("font-family", "var(--font-mono)")
+      .attr("font-family", "var(--font-sans)")
       .attr("font-size", 11)
       .attr("font-weight", 600)
       .text(fmtScore(last.mean));
@@ -234,7 +234,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
         .attr("y", y)
         .attr("dy", "0.34em")
         .attr("fill", "var(--text)")
-        .attr("font-family", "var(--font-mono)")
+        .attr("font-family", "var(--font-sans)")
         .attr("font-size", Math.min(11, rowH - 2))
         .text(fmtScore(e.score));
     });
@@ -255,7 +255,7 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
       .attr("x", (k) => cx(k))
       .attr("text-anchor", "middle")
       .attr("fill", "var(--text-3)")
-      .attr("font-family", "var(--font-mono)")
+      .attr("font-family", "var(--font-sans)")
       .attr("font-size", 10.5)
       .text((k) => d3.utcFormat("%-d %b")(asDate(k)));
 
@@ -379,33 +379,33 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
       />
       {tip && (
         <div
-          className="pointer-events-none absolute z-10 w-56 border border-line-strong bg-surface p-2.5 text-xs shadow-pop"
+          className="pointer-events-none absolute z-10 w-60 rounded-xl border border-line bg-surface p-3 text-xs shadow-pop"
           style={{ top: tipTop, left: tipFlip ? undefined : tipLeft, right: tipFlip ? size.w - (tipLeft - colW - 24) : undefined }}
         >
-          <p className="font-mono text-2xs font-semibold text-accent-ink">{fmtDayLong(tip.k)}</p>
+          <p className="text-xs font-semibold text-brand-ink">{fmtDayLong(tip.k)}</p>
           <dl className="mt-1.5 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-ink-2">
             {tip.ent && (
               <>
                 <dt className="truncate font-medium text-ink">{tip.ent.name}</dt>
-                <dd className="text-right font-mono font-semibold text-ink">{tip.v === undefined ? "no reading" : fmtScore(tip.v)}</dd>
+                <dd className="text-right font-semibold text-ink">{tip.v === undefined ? "no reading" : fmtScore(tip.v)}</dd>
               </>
             )}
             <dt>market mean</dt>
-            <dd className="text-right font-mono">{fmtScore(tip.m.mean)}</dd>
+            <dd className="text-right">{fmtScore(tip.m.mean)}</dd>
             <dt>spread ±1σ</dt>
-            <dd className="text-right font-mono">{tip.m.std.toFixed(2)}</dd>
+            <dd className="text-right">{tip.m.std.toFixed(2)}</dd>
           </dl>
           {tip.evs.length > 0 && (
             <ul className="mt-2 space-y-1 border-t border-line pt-2">
               {tip.evs.slice(0, 3).map((e) => (
                 <li key={e.id} className="text-ink-2">
-                  <span className="font-semibold text-accent-ink">{e.type}</span>
+                  <span className="font-semibold text-brand-ink">{e.type}</span>
                   {!tip.ent && <> · {e.entityName}</>}
                 </li>
               ))}
             </ul>
           )}
-          {tip.ent && <p className="mt-2 font-mono text-[10px] text-ink-3">click to open the company</p>}
+          {tip.ent && <p className="mt-2 text-[10px] text-ink-3">click to open the company</p>}
         </div>
       )}
       <table className="sr-only">
@@ -432,18 +432,18 @@ export function MarketHeatmap({ market, entities, events }: { market: MarketPoin
 /** Legend for the tile header: the fixed diverging scale and the event outline. */
 export function HeatmapLegend() {
   return (
-    <span className="hidden items-center gap-3 font-mono sm:flex">
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-3">
       <span className="flex items-center gap-1.5">
         −1
         <span
-          className="h-2 w-24"
+          className="h-2 w-24 rounded-full"
           style={{ background: "linear-gradient(90deg, var(--neg), var(--div-mid) 50%, var(--pos))" }}
           aria-hidden="true"
         />
         +1
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="size-2.5 border-[1.5px] border-ring" aria-hidden="true" />
+        <span className="size-3 rounded-[3px] border-2 border-ring" aria-hidden="true" />
         event
       </span>
     </span>

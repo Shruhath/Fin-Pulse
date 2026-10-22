@@ -56,7 +56,7 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
     const g = root.append("g").attr("transform", `translate(${M.left},${M.top})`);
 
     g.append("g").attr("class", "fp-axis").attr("transform", `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(6).tickSize(-innerH).tickPadding(8));
-    g.append("text").attr("x", innerW).attr("y", innerH + 30).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-size", 10.5).attr("font-family", "var(--font-mono)").text("macro-F1");
+    g.append("text").attr("x", innerW).attr("y", innerH + 30).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-size", 10.5).attr("font-family", "var(--font-sans)").text("macro-F1");
 
     for (const m of models) {
       const rs = rows.filter((r) => r.model === m);
@@ -76,14 +76,14 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
       const vals = rs.map((r) => r.metrics.macroF1);
       const lo = d3.min(vals)!;
       const hi = d3.max(vals)!;
-      g.append("line").attr("class", "tp-gap").attr("x1", x(lo)).attr("x2", x(hi)).attr("y1", cy).attr("y2", cy).attr("stroke", baseline ? "var(--border-strong)" : "var(--accent)").attr("stroke-width", 2);
+      g.append("line").attr("class", "tp-gap").attr("x1", x(lo)).attr("x2", x(hi)).attr("y1", cy).attr("y2", cy).attr("stroke", baseline ? "var(--border-strong)" : "var(--brand)").attr("stroke-width", 2);
       for (const r of rs) {
         g.append("path")
           .attr("class", "tp-dot")
           .attr("d", d3.symbol(r.indian ? d3.symbolDiamond : d3.symbolCircle, 90)())
           .attr("transform", `translate(${x(r.metrics.macroF1)},${cy})`)
-          .attr("fill", r.indian ? "var(--accent)" : "var(--surface)")
-          .attr("stroke", baseline ? "var(--text-2)" : "var(--accent)")
+          .attr("fill", r.indian ? "var(--brand)" : "var(--surface)")
+          .attr("stroke", baseline ? "var(--text-2)" : "var(--brand)")
           .attr("stroke-width", 2)
           .append("title")
           .text(`${r.model} · ${r.dataset}: ${r.metrics.macroF1.toFixed(2)}`);
@@ -95,8 +95,8 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
           .attr("x", (x(gold.metrics.macroF1) + x(pub.metrics.macroF1)) / 2)
           .attr("y", cy - 12)
           .attr("text-anchor", "middle")
-          .attr("fill", "var(--accent-ink)")
-          .attr("font-family", "var(--font-mono)")
+          .attr("fill", "var(--brand-ink)")
+          .attr("font-family", "var(--font-sans)")
           .attr("font-size", 10.5)
           .text(`gap −${(pub.metrics.macroF1 - gold.metrics.macroF1).toFixed(2)}`);
       }
@@ -118,16 +118,16 @@ export function TransferPlot({ rows }: { rows: MetricRow[] }) {
 
   return (
     <div className="flex h-full flex-col">
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 px-3 pt-2 font-mono text-2xs text-ink-3">
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 px-3 pt-2 text-xs text-ink-3">
         <li className="flex items-center gap-1.5">
           <svg viewBox="0 0 10 10" className="size-2.5" aria-hidden="true">
-            <circle cx="5" cy="5" r="3.6" fill="none" stroke="var(--accent)" strokeWidth="1.6" />
+            <circle cx="5" cy="5" r="3.6" fill="none" stroke="var(--brand)" strokeWidth="1.6" />
           </svg>
           public benchmark
         </li>
         <li className="flex items-center gap-1.5">
           <svg viewBox="0 0 10 10" className="size-2.5" aria-hidden="true">
-            <path d="M5 .5 9.5 5 5 9.5.5 5Z" fill="var(--accent)" />
+            <path d="M5 .5 9.5 5 5 9.5.5 5Z" fill="var(--brand)" />
           </svg>
           Indian data (SEntFiN, FinPulse gold)
         </li>
@@ -158,14 +158,14 @@ export function ConfusionMatrix({ data }: { data: Confusion }) {
       const total = d3.sum(row) || 1;
       row.forEach((v, j) => {
         const share = v / total;
-        g.append("rect").attr("x", j * cell).attr("y", i * cell).attr("width", cell - 2).attr("height", cell - 2).attr("fill", "var(--accent)").attr("fill-opacity", 0.08 + share * 0.92);
+        g.append("rect").attr("x", j * cell).attr("y", i * cell).attr("width", cell - 2).attr("height", cell - 2).attr("fill", "var(--brand)").attr("fill-opacity", 0.08 + share * 0.92);
         g.append("text")
           .attr("x", j * cell + cell / 2)
           .attr("y", i * cell + cell / 2)
           .attr("text-anchor", "middle")
           .attr("dy", "-0.1em")
           .attr("fill", share > 0.55 ? "var(--text-inverse)" : "var(--text)")
-          .attr("font-family", "var(--font-mono)")
+          .attr("font-family", "var(--font-sans)")
           .attr("font-size", Math.max(11, cell / 6))
           .attr("font-weight", 600)
           .text(v);
@@ -175,7 +175,7 @@ export function ConfusionMatrix({ data }: { data: Confusion }) {
           .attr("text-anchor", "middle")
           .attr("dy", "1.3em")
           .attr("fill", share > 0.55 ? "var(--text-inverse)" : "var(--text-3)")
-          .attr("font-family", "var(--font-mono)")
+          .attr("font-family", "var(--font-sans)")
           .attr("font-size", 10)
           .text(`${Math.round(share * 100)}%`);
       });
@@ -184,7 +184,7 @@ export function ConfusionMatrix({ data }: { data: Confusion }) {
     data.labels.forEach((l, j) =>
       g.append("text").attr("x", j * cell + cell / 2).attr("y", -10).attr("text-anchor", "middle").attr("fill", "var(--text-2)").attr("font-size", 11.5).text(l),
     );
-    g.append("text").attr("x", -10).attr("y", -10).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-family", "var(--font-mono)").attr("font-size", 10).text("gold ↓ / pred →");
+    g.append("text").attr("x", -10).attr("y", -10).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-family", "var(--font-sans)").attr("font-size", 10).text("gold ↓ / pred →");
   }, [data, size]);
   return (
     <div ref={ref} className="relative h-full min-h-[200px]">
@@ -214,20 +214,20 @@ export function Reliability({ before, after, eceBefore, eceAfter }: { before: Re
     g.append("line").attr("x1", x(floor)).attr("y1", y(floor)).attr("x2", x(1)).attr("y2", y(1)).attr("stroke", "var(--chart-zero)").attr("stroke-dasharray", "3 3");
     const line = d3.line<ReliabilityBin>().x((d) => x(d.confidence)).y((d) => y(d.accuracy));
     g.append("path").datum(before).attr("d", line).attr("fill", "none").attr("stroke", "var(--text-3)").attr("stroke-width", 1.5);
-    if (after) g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2);
+    if (after) g.append("path").datum(after).attr("d", line).attr("fill", "none").attr("stroke", "var(--brand)").attr("stroke-width", 2);
     g.selectAll("circle.b").data(before).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3).attr("fill", "var(--surface)").attr("stroke", "var(--text-3)");
-    g.selectAll("circle.a").data(after ?? []).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3.5).attr("fill", "var(--accent)");
-    g.append("text").attr("x", side).attr("y", side + 30).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-family", "var(--font-mono)").attr("font-size", 10).text("confidence → accuracy ↑");
+    g.selectAll("circle.a").data(after ?? []).join("circle").attr("cx", (d) => x(d.confidence)).attr("cy", (d) => y(d.accuracy)).attr("r", 3.5).attr("fill", "var(--brand)");
+    g.append("text").attr("x", side).attr("y", side + 30).attr("text-anchor", "end").attr("fill", "var(--text-3)").attr("font-family", "var(--font-sans)").attr("font-size", 10).text("confidence → accuracy ↑");
   }, [before, after, size]);
   return (
     <div className="flex h-full flex-col">
-      <ul className="flex flex-wrap gap-x-4 px-3 pt-2 font-mono text-2xs text-ink-3">
+      <ul className="flex flex-wrap gap-x-4 px-3 pt-2 text-xs text-ink-3">
         <li className="flex items-center gap-1.5">
           <span className="h-px w-4 bg-ink-3" aria-hidden="true" /> before · ECE {eceBefore.toFixed(3)}
         </li>
         {eceAfter !== null && (
           <li className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 bg-accent" aria-hidden="true" /> after temperature scaling · ECE {eceAfter.toFixed(3)}
+            <span className="h-0.5 w-4 bg-brand" aria-hidden="true" /> after temperature scaling · ECE {eceAfter.toFixed(3)}
           </li>
         )}
       </ul>

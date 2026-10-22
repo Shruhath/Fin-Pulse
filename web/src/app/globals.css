@@ -1,132 +1,132 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-@custom-variant day (&:where([data-theme="light"], [data-theme="light"] *));
 
 /* ---------------------------------------------------------------------------
-   FinPulse WM tokens.
-   Night (default): an ink desktop, graphite windows, marigold focus.
-   Day: the same window manager on cool grey.
-   Sentiment colour is never alone: every state also carries an icon.
+   FinPulse tokens.
+   A marked-up reading copy: ball-pen blue ink on cool white paper, highlighter
+   yellow reserved for evidence, pencil ticks for claims that hold.
+   Sentiment and verification colour is never alone: a glyph always travels with it.
 --------------------------------------------------------------------------- */
 :root,
-[data-theme="dark"] {
-  color-scheme: dark;
-
-  --desk: #08090c;
-  --desk-ink: #232b3d; /* wallpaper isolines */
-  --desk-ink-strong: #34405a;
-
-  --bg: #0e1015;
-  --surface: #121419;
-  --surface-2: #181b22;
-  --surface-3: #20242d;
-  --border: #23272f;
-  --border-strong: #343a46;
-
-  --text: #ece7dc;
-  --text-2: #b4afa4;
-  --text-3: #8f8b82;
-  --text-inverse: #0e1015;
-
-  --focus-ring: #f4a524; /* marigold: the focused window */
-  --focus-ring-soft: rgba(244, 165, 36, 0.16);
-  --accent: #f4a524;
-  --accent-hover: #ffbb4a;
-  --accent-weak: rgba(244, 165, 36, 0.12);
-  --accent-ink: #ffc76b;
-  --link: #ffc76b;
-  --focus: #f4a524;
-
-  --bar: #050608;
-  --bar-text: #a19c91;
-
-  /* diverging poles, CVD-validated (deutan dE 20): positive blue, negative coral */
-  --pos: #5aa9e6;
-  --pos-weak: rgba(90, 169, 230, 0.14);
-  --neg: #f2785c;
-  --neg-weak: rgba(242, 120, 92, 0.14);
-  --div-mid: #2a2e36;
-  --neu: #8d96a6;
-  --neu-weak: rgba(141, 150, 166, 0.14);
-  --warn: #f4a524;
-  --warn-weak: rgba(244, 165, 36, 0.12);
-  --info: #9aa3b2;
-  --info-weak: rgba(154, 163, 178, 0.12);
-
-  --chart-grid: #1e222a;
-  --chart-axis: #7d796f;
-  --chart-zero: #3b414d;
-  --chart-band: rgba(236, 231, 220, 0.09);
-  --chart-line: #ece7dc;
-  --chart-focus-line: #f4a524;
-
-  --elev-pop: 0 18px 48px -16px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03);
-}
-
 [data-theme="light"] {
   color-scheme: light;
 
-  --desk: #c9cfd8;
-  --desk-ink: #aab3c1;
-  --desk-ink-strong: #94a0b2;
+  --bg: #f5f6fb;
+  --surface: #ffffff;
+  --surface-2: #eff1f8;
+  --surface-3: #e3e7f3;
+  --border: #e0e4f0;
+  --border-strong: #c6cde0;
 
-  --bg: #eef0f3;
-  --surface: #fbfbfa;
-  --surface-2: #f2f3f4;
-  --surface-3: #e6e8eb;
-  --border: #d5d9df;
-  --border-strong: #b9bfc8;
+  --text: #12152a;
+  --text-2: #424866;
+  --text-3: #5d6482;
+  --text-inverse: #ffffff;
 
-  --text: #15171c;
-  --text-2: #464b55;
-  --text-3: #5b616c;
-  --text-inverse: #fbfbfa;
+  --rail: #162a86;
+  --rail-2: #1d3399;
+  --rail-text: #d6dcf8;
+  --rail-text-strong: #ffffff;
+  --rail-line: rgba(255, 255, 255, 0.14);
 
-  --focus-ring: #c46f00;
-  --focus-ring-soft: rgba(196, 111, 0, 0.14);
-  --accent: #b86600;
-  --accent-hover: #9a5500;
-  --accent-weak: rgba(196, 111, 0, 0.1);
-  --accent-ink: #8f4f00;
-  --link: #8f4f00;
-  --focus: #c46f00;
+  --brand: #1f3bb3;
+  --brand-hover: #182f96;
+  --brand-weak: rgba(31, 59, 179, 0.08);
+  --brand-ink: #1f3bb3;
+  --focus-ring: #1f3bb3;
 
-  --bar: #15171c;
-  --bar-text: #b9b5ab;
+  /* highlighter: evidence and nothing else */
+  --hl: #ffe95e;
+  --hl-ink: #12152a;
+  --hl-weak: rgba(255, 233, 94, 0.45);
 
-  --pos: #1f6fc4;
-  --pos-weak: rgba(31, 111, 196, 0.1);
-  --neg: #c4462d;
-  --neg-weak: rgba(196, 70, 45, 0.09);
-  --div-mid: #e3e6ea;
-  --neu: #5f6875;
-  --neu-weak: rgba(95, 104, 117, 0.1);
-  --warn: #9a5500;
-  --warn-weak: rgba(196, 111, 0, 0.1);
-  --info: #5b616c;
-  --info-weak: rgba(91, 97, 108, 0.09);
+  --pos: #087a5f;
+  --pos-weak: rgba(8, 122, 95, 0.1);
+  --neg: #c43a26;
+  --neg-weak: rgba(196, 58, 38, 0.09);
+  --neu: #5f6784;
+  --neu-weak: rgba(95, 103, 132, 0.11);
+  --warn: #9a5700;
+  --warn-weak: rgba(196, 118, 0, 0.12);
+  --div-mid: #e6e9f3;
 
-  --chart-grid: #e4e7eb;
-  --chart-axis: #6b7280;
-  --chart-zero: #aab1bc;
-  --chart-band: rgba(21, 23, 28, 0.07);
-  --chart-line: #15171c;
-  --chart-focus-line: #c46f00;
+  --chart-grid: #e4e8f2;
+  --chart-axis: #6a7190;
+  --chart-zero: #aab2cb;
+  --chart-band: rgba(31, 59, 179, 0.1);
+  --chart-line: #12152a;
+  --chart-focus-line: #1f3bb3;
 
-  --elev-pop: 0 18px 48px -16px rgba(20, 24, 32, 0.35), 0 0 0 1px rgba(20, 24, 32, 0.06);
+  --sh-1: 0 1px 2px rgba(18, 21, 42, 0.05), 0 1px 1px rgba(18, 21, 42, 0.03);
+  --sh-2: 0 8px 24px -8px rgba(18, 21, 42, 0.14), 0 2px 6px rgba(18, 21, 42, 0.05);
+  --sh-pop: 0 24px 60px -16px rgba(18, 21, 42, 0.34), 0 0 0 1px rgba(18, 21, 42, 0.06);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0c0f20;
+  --surface: #141831;
+  --surface-2: #1b2040;
+  --surface-3: #252b52;
+  --border: #252b4f;
+  --border-strong: #363e6b;
+
+  --text: #eceffd;
+  --text-2: #b9c0dd;
+  --text-3: #8f97bb;
+  --text-inverse: #0c0f20;
+
+  --rail: #0a0d26;
+  --rail-2: #131845;
+  --rail-text: #aab2d8;
+  --rail-text-strong: #ffffff;
+  --rail-line: rgba(255, 255, 255, 0.1);
+
+  --brand: #4560f5;
+  --brand-hover: #5b74ff;
+  --brand-weak: rgba(110, 135, 255, 0.14);
+  --brand-ink: #a9b8ff;
+  --focus-ring: #8ea0ff;
+
+  --hl: rgba(255, 226, 92, 0.3);
+  --hl-ink: #eceffd;
+  --hl-weak: rgba(255, 226, 92, 0.16);
+
+  --pos: #3ecfa4;
+  --pos-weak: rgba(62, 207, 164, 0.14);
+  --neg: #ff7e69;
+  --neg-weak: rgba(255, 126, 105, 0.14);
+  --neu: #9aa3c9;
+  --neu-weak: rgba(154, 163, 201, 0.14);
+  --warn: #f2b04a;
+  --warn-weak: rgba(242, 176, 74, 0.13);
+  --div-mid: #262c52;
+
+  --chart-grid: #232950;
+  --chart-axis: #8890b5;
+  --chart-zero: #46508a;
+  --chart-band: rgba(140, 160, 255, 0.16);
+  --chart-line: #eceffd;
+  --chart-focus-line: #a9b8ff;
+
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sh-2: 0 10px 28px -10px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --sh-pop: 0 24px 60px -16px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 :root {
-  --bar-h: 34px;
-  --gap: 10px;
-  --rad-s: 2px;
-  --rad-m: 3px;
-  --rad-l: 4px;
+  --hl-solid: #ffe95e;
+  --hl-solid-ink: #231e00;
+  --rail-w: 248px;
+  --r-s: 8px;
+  --r-m: 12px;
+  --r-l: 16px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @theme inline {
-  --color-desk: var(--desk);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -137,15 +137,18 @@
   --color-ink-2: var(--text-2);
   --color-ink-3: var(--text-3);
   --color-ink-inverse: var(--text-inverse);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-weak: var(--accent-weak);
-  --color-accent-ink: var(--accent-ink);
+  --color-rail: var(--rail);
+  --color-rail-2: var(--rail-2);
+  --color-rail-ink: var(--rail-text);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-weak: var(--brand-weak);
+  --color-brand-ink: var(--brand-ink);
   --color-ring: var(--focus-ring);
-  --color-ring-soft: var(--focus-ring-soft);
-  --color-link: var(--link);
-  --color-bar: var(--bar);
-  --color-bar-ink: var(--bar-text);
+  --color-hl: var(--hl);
+  --color-hl-weak: var(--hl-weak);
+  --color-hl-solid: var(--hl-solid);
+  --color-hl-solid-ink: var(--hl-solid-ink);
   --color-pos: var(--pos);
   --color-pos-weak: var(--pos-weak);
   --color-neg: var(--neg);
@@ -154,58 +157,60 @@
   --color-neu-weak: var(--neu-weak);
   --color-warn: var(--warn);
   --color-warn-weak: var(--warn-weak);
-  --color-info: var(--info);
-  --color-info-weak: var(--info-weak);
 
   --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --font-display: var(--font-bricolage), var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --text-2xs: 0.6875rem;
-  --text-2xs--line-height: 1rem;
   --text-xs: 0.75rem;
-  --text-xs--line-height: 1.05rem;
+  --text-xs--line-height: 1.1rem;
   --text-sm: 0.8125rem;
-  --text-sm--line-height: 1.2rem;
-  --text-base: 0.875rem;
-  --text-base--line-height: 1.4rem;
-  --text-md: 1rem;
-  --text-md--line-height: 1.55rem;
-  --text-lg: 1.25rem;
-  --text-lg--line-height: 1.65rem;
-  --text-xl: 1.5rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5rem;
+  --text-md: 1.0625rem;
+  --text-md--line-height: 1.65rem;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.7rem;
+  --text-xl: 1.4375rem;
   --text-xl--line-height: 1.9rem;
-  --text-2xl: 2rem;
-  --text-2xl--line-height: 2.3rem;
+  --text-2xl: 1.8125rem;
+  --text-2xl--line-height: 2.2rem;
 
-  --radius-s: var(--rad-s);
-  --radius-m: var(--rad-m);
-  --radius-l: var(--rad-l);
-  --shadow-pop: var(--elev-pop);
+  --radius-s: var(--r-s);
+  --radius-m: var(--r-m);
+  --radius-l: var(--r-l);
+  --shadow-1: var(--sh-1);
+  --shadow-2: var(--sh-2);
+  --shadow-pop: var(--sh-pop);
 }
 
 @layer base {
   html {
-    background: var(--desk);
+    background: var(--bg);
     -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 16px;
   }
 
   body {
-    background: var(--desk);
+    background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--accent) 34%, transparent);
-    color: var(--text);
+    background: color-mix(in srgb, var(--brand) 26%, transparent);
+    color: inherit;
   }
 
   :focus-visible {
-    outline: 1px solid var(--focus);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
   a {
@@ -215,13 +220,23 @@
   }
 
   input,
-  textarea {
-    caret-color: var(--accent);
+  textarea,
+  select {
+    caret-color: var(--brand);
+    font: inherit;
   }
 
   ::placeholder {
     color: var(--text-3);
     opacity: 1;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
   }
 
   .num,
@@ -236,13 +251,14 @@
     scrollbar-color: var(--border-strong) transparent;
   }
   *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
   *::-webkit-scrollbar-thumb {
     background: var(--border-strong);
-    border: 2px solid transparent;
+    border: 3px solid transparent;
     background-clip: content-box;
+    border-radius: 99px;
   }
 
   h1,
@@ -251,10 +267,14 @@
     text-wrap: balance;
   }
 
+  p {
+    text-wrap: pretty;
+  }
+
   .fp-axis text {
-    fill: var(--text-3);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
+    fill: var(--chart-axis);
+    font-family: var(--font-sans);
+    font-size: 11px;
   }
   .fp-axis path,
   .fp-axis line {
@@ -265,11 +285,144 @@
   }
 }
 
+@layer components {
+  /* The page title face. The interface itself stays in the body face. */
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  /* Highlighter: evidence only. The sweep runs once when a mark switches on. */
+  .mark-up {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 100%;
+    color: var(--hl-ink);
+    border-radius: 3px;
+    padding: 0.05em 0.15em;
+    margin: 0 -0.15em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    transition: background-size 360ms var(--ease-out);
+  }
+  .mark-up[data-on="true"] {
+    background-size: 100% 100%;
+  }
+
+  /* A pencil mark that draws itself. */
+  .tick path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  .tick[data-draw="true"] path {
+    animation: draw 420ms var(--ease-out) both;
+  }
+  .tick[data-draw="true"] path:nth-child(2) {
+    animation-delay: 120ms;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+    border-radius: var(--r-s);
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-l);
+    box-shadow: var(--sh-1);
+  }
+
+  .fade-up {
+    animation: fade-up 260ms var(--ease-out) both;
+  }
+
+  /* A checkbox drawn from the palette instead of the browser default. */
+  .check {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: none;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 5px;
+    background: var(--surface);
+    transition: background-color 150ms, border-color 150ms;
+    cursor: pointer;
+  }
+  .check:checked {
+    background: var(--brand);
+    border-color: var(--brand);
+  }
+  .check:checked::after {
+    content: "";
+    width: 0.55rem;
+    height: 0.3rem;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: translate(0, -1px) rotate(-45deg);
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 40%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .mark-up {
+    background-size: 100% 100%;
   }
 }
