@@ -37,7 +37,7 @@ uv run python ../scripts/fetch_models.py asr    # the speech model, 290 MB (once
 cd .. && make live          # database, models, API, worker and web app: http://localhost:3000
 ```
 
-`make live` loads models from the local cache only. On a machine that has never downloaded them, run it
+`make live` serves the web app as a production build, so moving between pages is instant; `FINPULSE_WEB=dev make live` runs the development server instead. It loads models from the local cache only. On a machine that has never downloaded them, run it
 once with `FINPULSE_ONLINE=1`. Voice needs a secure page, so open the app on `localhost`, not a LAN address.
 
 Without a backend, `scripts/live.sh preview` serves the web app on clearly labelled synthetic data.
@@ -49,7 +49,7 @@ the commands that build the database from the collected documents, train the mod
 
 ```
 server/   Python package `finpulse`: ingest, parsing, pipeline stages, job queue, FastAPI service, tests
-web/      Next.js app, eight workspaces; its API types are generated from server/openapi.json
+web/      Next.js app: a start page and the app behind it (Home, Companies, Filings, Ask, and Events, Analyze, Evaluation and Method under Insights); its API types are generated from server/openapi.json
 infra/    docker compose for PostgreSQL + pgvector and the optional annotation tool
 scripts/  local model server, model download, one-command stack
 docs/     PLAN.md (design), BACKEND.md (how it runs and what it measured), DATASET_CARD.md, ANALYSIS.md

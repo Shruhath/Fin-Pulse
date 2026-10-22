@@ -3,6 +3,7 @@
 #
 #   scripts/live.sh            database, local LLM server, API, job worker and the web app on real data
 #   scripts/live.sh preview    the web app alone on the synthetic preview data (no backend needed)
+#   FINPULSE_WEB=dev scripts/live.sh   the same, with the web app in development mode
 #
 # Ctrl-C stops everything this script started. API and worker logs are in data/logs/.
 # Models are loaded from the local cache only (HF_HUB_OFFLINE), so a demo makes no network calls;
@@ -35,6 +36,12 @@ done
 curl -sf http://127.0.0.1:8000/api/health || { echo "the API did not come up; see data/logs/api.log" >&2; exit 1; }
 echo
 echo "API http://127.0.0.1:8000   web http://localhost:3000   logs data/logs/"
-# in the background and waited on, so a plain TERM (not only Ctrl-C) reaches the trap and stops everything
-(cd web && exec bun run dev) &
+# in the background and waited on, so a plain TERM (not only Ctrl-C) reaches the trap and stops everything.
+# The web app is built once and served in production mode, which is what makes moving between pages feel instant;
+# FINPULSE_WEB=dev runs the development server instead (hot reload, slower first visit to each page).
+if [[ "${FINPULSE_WEB:-prod}" == "dev" ]]; then
+  (cd web && exec bun run dev) &
+else
+  (cd web && bun run build && exec bun run start) &
+fi
 wait $!
