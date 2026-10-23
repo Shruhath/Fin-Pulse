@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# a frozen copy of the API answers (real order text), made by scripts/make_snapshot.py; never committed
+/snapshot/

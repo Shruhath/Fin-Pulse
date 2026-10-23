@@ -17,8 +17,9 @@ import { fmtDay } from "@/lib/format";
 import { useBooleanPref } from "@/lib/pref-store";
 import { speak, spokenAnswer, stopSpeaking, useCanSpeak } from "@/lib/speak";
 import { describeMicError, listen, type Listener, useVoiceSupported } from "@/lib/voice";
+import { API } from "@/lib/api/public";
 
-const API = process.env.NEXT_PUBLIC_FINPULSE_API_URL ?? "http://127.0.0.1:8000";
+
 const MAX_QUESTION = 500;
 
 const STAGE_LABEL: Record<AskStage["key"], { label: string; how: string }> = {

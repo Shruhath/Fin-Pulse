@@ -1,6 +1,7 @@
 import "server-only";
 
 import * as preview from "@/lib/preview";
+import { SNAPSHOT, readSnapshot } from "./snapshot";
 import type {
   CompanyDetail,
   CorpusStatus,
@@ -32,6 +33,10 @@ export const API_URL = process.env.FINPULSE_API_URL ?? "http://127.0.0.1:8000";
 export const isPreview = () => process.env.FINPULSE_PREVIEW === "1";
 
 async function get<T>(path: string): Promise<ApiResult<T>> {
+  if (SNAPSHOT) {
+    const hit = readSnapshot<T>(path);
+    return hit === null ? { state: "missing" } : { state: "ok", data: hit, preview: false };
+  }
   try {
     const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
     if (res.status === 404) return { state: "missing" };

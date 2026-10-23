@@ -13,6 +13,7 @@ import { FilingView } from "@/components/pages/filing-view";
 import type { components } from "@/lib/api/schema";
 import { problem } from "@/lib/api/problem";
 import type { DocumentDetail, Job, JobStage, SourceKind, StageKey } from "@/lib/api/types";
+import { API } from "@/lib/api/public";
 
 const STAGES: { key: StageKey; label: string; how: string }[] = [
   { key: "ingest", label: "Ingest", how: "Fetch, hash and store the raw file" },
@@ -27,7 +28,7 @@ const STAGES: { key: StageKey; label: string; how: string }[] = [
 // Preview-only stage timings; a real run reports its own.
 const PREVIEW_MS: Record<StageKey, number> = { ingest: 380, parse: 640, entities: 820, sentiment: 760, events: 2300, summary: 2700, verify: 1300 };
 
-const API = process.env.NEXT_PUBLIC_FINPULSE_API_URL ?? "http://127.0.0.1:8000";
+
 
 type Input = ({ kind: "text"; text: string } | { kind: "url"; url: string } | { kind: "pdf"; file: File }) & { source: SourceKind };
 type AnalyzeRequest = components["schemas"]["AnalyzeRequest"];

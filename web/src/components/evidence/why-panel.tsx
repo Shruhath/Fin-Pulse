@@ -7,8 +7,9 @@ import { SentimentPill } from "@/components/ui/sentiment";
 import { Empty } from "@/components/ui/states";
 import type { EntitySpan, Explanation } from "@/lib/api/types";
 import { fmtPct } from "@/lib/format";
+import { API } from "@/lib/api/public";
 
-const API = process.env.NEXT_PUBLIC_FINPULSE_API_URL ?? "http://127.0.0.1:8000";
+
 
 export interface WhyTarget {
   documentId: string;
@@ -31,6 +32,7 @@ export function WhyPanel({ target }: { target: WhyTarget | null }) {
     fetch(url, { cache: "no-store" })
       .then(async (res) => {
         if (res.status === 409) throw new Error("Explanations need the fine-tuned FinBERT, which is not loaded here.");
+        if (res.status === 404) throw new Error("This frozen copy explains only a sample of mentions; the local build explains any of them.");
         if (res.status === 422) {
           const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
           throw new Error(typeof body?.detail === "string" ? `The model could not read this one: ${body.detail}.` : "The model could not read this mention.");

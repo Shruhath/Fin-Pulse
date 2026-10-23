@@ -10,6 +10,7 @@ import { MobileTabs, MobileTop } from "./mobile-nav";
 import { Palette } from "./palette";
 import { Sidebar } from "./sidebar";
 import { Toaster } from "./toaster";
+import { FROZEN } from "@/lib/api/public";
 
 /** Leaving a page drops whatever was highlighted on it. */
 function ResetFocusOnNavigate() {
@@ -41,6 +42,12 @@ export function AppShell({
         <Sidebar corpus={corpus} preview={preview} />
         <MobileTop />
         <div className="lg:pl-(--rail-w)">
+          {FROZEN && (
+            <p className="bg-brand-weak px-4 py-2 text-center text-sm font-medium text-ink">
+              Frozen demonstration: a copy of the local application&apos;s data from 23 October 2026. Ask answers the suggested questions from recorded runs;
+              Analyze, spoken questions and most explanations need the local build.
+            </p>
+          )}
           {preview && (
             <p className="bg-warn px-4 py-2 text-center text-sm font-medium text-ink-inverse">
               Synthetic preview: every company, filing and figure on screen is invented. Start the stack with <code className="font-mono">make live</code> for real data.
