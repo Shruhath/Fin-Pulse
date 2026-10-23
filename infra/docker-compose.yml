@@ -1,0 +1,27 @@
+# Local services for FinPulse. Ollama runs natively (see docs/PLAN.md section 3.2), not here.
+#
+#   docker compose -f infra/docker-compose.yml up -d db
+#
+# The host port is 5433 so it never collides with another PostgreSQL on this machine.
+name: finpulse
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: finpulse
+      POSTGRES_PASSWORD: finpulse
+      POSTGRES_DB: finpulse
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - finpulse-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finpulse -d finpulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  finpulse-db:
