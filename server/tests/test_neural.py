@@ -130,3 +130,21 @@ def test_integrated_gradients_add_up_to_the_score_difference_and_mark_the_compan
     assert result.convergence < 0.1  # completeness: the attributions sum to f(x) - f(baseline)
     other = next(name for name in LABELS if name != result.label)
     assert explain(model, (text, 0, 8), steps=16, target=other).label == other
+
+
+def test_a_run_of_ruling_is_one_word_and_a_mention_cut_off_by_the_window_is_refused(tmp_path):
+    import numpy as np
+
+    from finpulse.sentiment.explain import _words, explain
+
+    words = _words(
+        ["[CLS]", "order", "-", "-", "-", "[E]", "yes", "[/E]", "paid", "[SEP]"],
+        np.array([0, 1, 1, 1, 1, 0, 2, 0, -1, 0.0]),
+    )
+    assert [w.text for w in words] == ["order", "-", "yes", "paid"] and words[1].weight == pytest.approx(1.0)
+    model = FinBert.from_base(str(tiny.classifier(tmp_path / "fb", PROSUS)), device="cpu")
+    text = (
+        " ".join(["-" * 60] * 40) + " Yes Bank slumped"
+    )  # ruled lines push the company past the token limit
+    with pytest.raises(ValueError, match="outside the first 160 tokens"):
+        explain(model, (text, text.index("Yes"), text.index("Yes") + 8))

@@ -123,7 +123,10 @@ def explain_mention(
         raise HTTPException(
             409, "explanations need the fine-tuned FinBERT; only the TF-IDF baseline is trained"
         )
-    result = explain(model, (doc.clean_text, start, end), steps=steps)
+    try:
+        result = explain(model, (doc.clean_text, start, end), steps=steps)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     return s.Explanation(
         label=result.label,
         probabilities=result.probabilities,

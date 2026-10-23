@@ -60,7 +60,7 @@ export function FilingView({ doc, at }: { doc: DocumentDetail; at?: { start: num
                   { value: "summary", label: "Summary", count: claims },
                   { value: "companies", label: "Companies", count: companies },
                   { value: "events", label: "Events", count: doc.events.length },
-                  { value: "why", label: "Why this score" },
+                  { value: "why", label: "Why" },
                 ]}
               />
               <TabPanel value="summary" className="px-5 pb-5">

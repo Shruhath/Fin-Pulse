@@ -30,7 +30,12 @@ export function WhyPanel({ target }: { target: WhyTarget | null }) {
     const url = `${API}/api/documents/${target.documentId}/explain?start=${target.span.start}&end=${target.span.end}`;
     fetch(url, { cache: "no-store" })
       .then(async (res) => {
-        if (!res.ok) throw new Error(res.status === 409 ? "Explanations need the fine-tuned FinBERT, which is not loaded here." : `The API answered ${res.status}.`);
+        if (res.status === 409) throw new Error("Explanations need the fine-tuned FinBERT, which is not loaded here.");
+        if (res.status === 422) {
+          const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+          throw new Error(typeof body?.detail === "string" ? `The model could not read this one: ${body.detail}.` : "The model could not read this mention.");
+        }
+        if (!res.ok) throw new Error(`The API answered ${res.status}.`);
         return (await res.json()) as Explanation;
       })
       .then((data) => live && setState({ key, data }))
@@ -50,6 +55,7 @@ export function WhyPanel({ target }: { target: WhyTarget | null }) {
   const top = [...words].filter((w) => !w.entity).sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight)).slice(0, 6);
   return (
     <div className="space-y-5">
+      <h2 className="text-xs font-semibold tracking-wide text-ink-3 uppercase">Why this score</h2>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="text-base font-semibold text-ink">{target.span.surface}</p>
         <SentimentPill sentiment={label} />

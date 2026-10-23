@@ -13,6 +13,7 @@ before calibration; the calibrated probabilities are returned next to it.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import numpy as np
@@ -48,6 +49,10 @@ def explain(model: FinBert, item: Item, *, steps: int = STEPS, target: str | Non
     ids = enc["input_ids"]
     mask = enc["attention_mask"]
     pieces = tok.convert_ids_to_tokens(ids[0])
+    if MARK_OPEN not in pieces or MARK_CLOSE not in pieces:
+        raise ValueError(
+            "the company falls outside the first 160 tokens the model reads (long runs of dashes or digits)"
+        )
     keep = torch.tensor(
         [p in (tok.cls_token, tok.sep_token, MARK_OPEN, MARK_CLOSE) for p in pieces], device=model.device
     )
@@ -88,8 +93,11 @@ def explain(model: FinBert, item: Item, *, steps: int = STEPS, target: str | Non
     )
 
 
+_RULE = re.compile(r"^[-_=~.]+$")  # a ruled line in a scanned order: many tokens, no meaning
+
+
 def _words(pieces: list[str], attribution: np.ndarray) -> list[Word]:
-    """Merge word pieces into words, drop the special tokens, scale to [-1, 1]."""
+    """Merge word pieces into words, drop special tokens, scale to [-1, 1]; a run of ruling is one word."""
     out: list[tuple[str, float, bool]] = []
     inside = False
     for piece, weight in zip(pieces, attribution, strict=True):
@@ -101,7 +109,10 @@ def _words(pieces: list[str], attribution: np.ndarray) -> list[Word]:
             continue
         if piece in ("[CLS]", "[SEP]", "[PAD]"):
             continue
-        if piece.startswith("##") and out:
+        if _RULE.match(piece) and out and _RULE.match(out[-1][0]) and out[-1][2] == inside:
+            text, w, ent = out[-1]
+            out[-1] = (text, w + float(weight), ent)
+        elif piece.startswith("##") and out:
             text, w, ent = out[-1]
             out[-1] = (text + piece[2:], w + float(weight), ent)
         else:
