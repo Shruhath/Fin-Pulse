@@ -263,3 +263,14 @@ def test_titles_event_arguments_and_claims_are_cleaned_of_personal_data(db, tmp_
         p.read_text(errors="ignore") for p in out.rglob("*") if p.suffix in {".jsonl", ".json", ".md"}
     )
     assert "Some Person" not in everything and "sp@example.test" not in everything
+
+
+def test_a_document_analysed_through_the_analyze_page_is_not_exported(db, tmp_path):
+    _seed(db)
+    db.add(
+        Document(source_kind="NEWS", title="pasted", raw_sha256="b" * 64, clean_text="x", n_words=1,
+                 status="analysed", is_submission=True)
+    )  # fmt: skip
+    db.flush()
+    export_dataport(db, tmp_path / "pkg")
+    assert len(pq.read_table(tmp_path / "pkg" / "documents.parquet")) == 1

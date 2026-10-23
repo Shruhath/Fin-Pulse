@@ -117,7 +117,9 @@ def export_dataport(
     )
     docs = list(
         session.scalars(
-            select(Document).where(Document.status.in_(("parsed", "analysed"))).order_by(Document.id)
+            select(Document)
+            .where(Document.status.in_(("parsed", "analysed")), Document.is_submission.is_(False))
+            .order_by(Document.id)
         )
     )
     doc_ids = {d.id for d in docs}

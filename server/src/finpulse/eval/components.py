@@ -23,7 +23,7 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from finpulse.db.models import EvalResult, Event
+from finpulse.db.models import Document, EvalResult, Event
 from finpulse.eval.sentiment import _git_sha
 from finpulse.pipeline.verify import ENTAIL_MIN
 
@@ -53,18 +53,26 @@ def load_contradiction_pairs(root: Path) -> list[tuple[str, str, bool]]:
     return out
 
 
-def _macro_f1(truth: list[bool], pred: list[bool]) -> tuple[float, float, float]:
-    """Macro-F1 over {same, different}, and the recall of each class."""
-    f1s, recalls = [], []
+def _two_class(truth: list[bool], pred: list[bool]) -> dict[str, float]:
+    """Macro precision, recall and F1 over {same, different}, and the recall of each class."""
+    f1s, precisions, recalls = [], [], []
     for cls in (True, False):
         tp = sum(t == cls and p == cls for t, p in zip(truth, pred, strict=True))
         fp = sum(t != cls and p == cls for t, p in zip(truth, pred, strict=True))
         fn = sum(t == cls and p != cls for t, p in zip(truth, pred, strict=True))
         prec = tp / (tp + fp) if tp + fp else 0.0
         rec = tp / (tp + fn) if tp + fn else 0.0
-        f1s.append(2 * prec * rec / (prec + rec) if prec + rec else 0.0)
+        precisions.append(prec)
         recalls.append(rec)
-    return sum(f1s) / 2, recalls[0], recalls[1]
+        f1s.append(2 * prec * rec / (prec + rec) if prec + rec else 0.0)
+    return {
+        "macroF1": sum(f1s) / 2,
+        "precisionMacro": sum(precisions) / 2,
+        "recallMacro": sum(recalls) / 2,
+        "recallSame": recalls[0],
+        "recallDifferent": recalls[1],
+        "accuracy": sum(t == p for t, p in zip(truth, pred, strict=True)) / len(truth),
+    }
 
 
 def score_nli(nli: Any, pairs: list[tuple[str, str, bool]]) -> dict[str, dict[str, float]]:
@@ -72,23 +80,9 @@ def score_nli(nli: Any, pairs: list[tuple[str, str, bool]]) -> dict[str, dict[st
     backward = nli.predict([(b, a) for a, b, _ in pairs])
     truth = [same for _, _, same in pairs]
     pred = [bool(f[0] >= ENTAIL_MIN and b[0] >= ENTAIL_MIN) for f, b in zip(forward, backward, strict=True)]
-    f1, rec_same, rec_diff = _macro_f1(truth, pred)
-    base_f1, base_same, base_diff = _macro_f1(truth, [False] * len(truth))
     return {
-        "nli": {
-            "n": float(len(pairs)),
-            "macroF1": f1,
-            "accuracy": sum(t == p for t, p in zip(truth, pred, strict=True)) / len(pairs),
-            "recallDifferent": rec_diff,
-            "recallSame": rec_same,
-        },
-        "always-different": {
-            "n": float(len(pairs)),
-            "macroF1": base_f1,
-            "accuracy": sum(not t for t in truth) / len(pairs),
-            "recallDifferent": base_diff,
-            "recallSame": base_same,
-        },
+        "nli": {"n": float(len(pairs)), **_two_class(truth, pred)},
+        "always-different": {"n": float(len(pairs)), **_two_class(truth, [False] * len(truth))},
     }
 
 
@@ -98,7 +92,10 @@ def score_events(session: Session) -> dict[str, dict[str, float]]:
     rules: dict[int, set[str]] = defaultdict(set)
     amounts: dict[tuple[int, str, str], set[int]] = defaultdict(set)
     valid = total = 0
+    submitted = set(session.scalars(select(Document.id).where(Document.is_submission.is_(True))))
     for e in session.scalars(select(Event)):
+        if e.doc_id in submitted:  # a document analysed through the Analyze page is not part of the corpus
+            continue
         if e.extractor == "llm":
             total += 1
             valid += bool(e.schema_valid)

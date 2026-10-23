@@ -332,6 +332,26 @@ def _components(a: argparse.Namespace) -> int:
     return 0
 
 
+def _baselines(a: argparse.Namespace) -> int:
+    import json
+
+    from finpulse.core.settings import get_settings as settings
+
+    cfg = settings()
+    if a.extend:
+        from finpulse.eval.modelpapers import extend_sentiment_metrics
+
+        with session_scope() as s:
+            for line in extend_sentiment_metrics(s, cfg.benchmark_dir, device=a.device):
+                print("  extended", line)
+        return 0
+    from finpulse.eval.modelpapers import run_model_papers
+
+    report = run_model_papers(cfg.benchmark_dir, cfg.results_dir, device=a.device)
+    print(json.dumps({k: v for k, v in report.items() if k in ("sizes", "so_pmi_sentfin_test")}, indent=2))
+    return 0
+
+
 def _ask(a: argparse.Namespace) -> int:
     from finpulse.pipeline.ask import answer_question, load_runtime
 
@@ -528,6 +548,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cp.add_argument("--no-nli", action="store_true")
     cp.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+
+    bl = add(
+        "baselines",
+        _baselines,
+        "compare with the two model papers, or --extend the stored sentiment rows",
+    )
+    bl.add_argument(
+        "--extend", action="store_true", help="add precision, recall and AUC to the stored sentiment rows"
+    )
+    bl.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
 
     ask = add("ask", _ask, "ask a question of the corpus, or --eval to measure question answering")
     ask.add_argument("question", nargs="?")

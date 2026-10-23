@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-10-23T15:24:56+00:00",
+  "protocol": "Financial PhraseBank, stratified 10-fold cross-validation, seed 7",
+  "sizes": {
+    "DS100": 2264,
+    "DS75": 3453,
+    "DS66": 4217,
+    "DS50": 4846
+  },
+  "published": {
+    "HSC (model paper 1, as published)": {
+      "DS100": {
+        "macroF1": 0.8633333333333333,
+        "perClassF1": {
+          "positive": 0.83,
+          "negative": 0.93,
+          "neutral": 0.83
+        }
+      },
+      "DS75": {
+        "macroF1": 0.82,
+        "perClassF1": {
+          "positive": 0.76,
+          "negative": 0.9,
+          "neutral": 0.8
+        }
+      },
+      "DS66": {
+        "macroF1": 0.7866666666666666,
+        "perClassF1": {
+          "positive": 0.72,
+          "negative": 0.87,
+          "neutral": 0.77
+        }
+      },
+      "DS50": {
+        "macroF1": 0.7633333333333333,
+        "perClassF1": {
+          "positive": 0.69,
+          "negative": 0.85,
+          "neutral": 0.75
+        }
+      }
+    },
+    "LPS (Malo et al., as published in model paper 1)": {
+      "DS100": {
+        "macroF1": 0.8033333333333333,
+        "perClassF1": {
+          "positive": 0.74,
+          "negative": 0.86,
+          "neutral": 0.81
+        }
+      },
+      "DS75": {
+        "macroF1": 0.7600000000000001,
+        "perClassF1": {
+          "positive": 0.67,
+          "negative": 0.83,
+          "neutral": 0.78
+        }
+      },
+      "DS66": {
+        "macroF1": 0.7366666666666667,
+        "perClassF1": {
+          "positive": 0.69,
+          "negative": 0.77,
+          "neutral": 0.75
+        }
+      },
+      "DS50": {
+        "macroF1": 0.7033333333333335,
+        "perClassF1": {
+          "positive": 0.59,
+          "negative": 0.78,
+          "neutral": 0.74
+        }
+      }
+    }
+  },
+  "tfidf_lr": {
+    "DS100": {
+      "macroF1": 0.8702534461747943,
+      "weightedF1": 0.9021052913001002,
+      "accuracy": 0.9041519434628975,
+      "precisionMacro": 0.8933449289655638,
+      "recallMacro": 0.8511740799113019,
+      "n": 2264.0,
+      "aucMacro": 0.9708887617572685,
+      "f1_negative": 0.8274647887323944,
+      "f1_neutral": 0.9441730635031402,
+      "f1_positive": 0.8391224862888482
+    },
+    "DS75": {
+      "macroF1": 0.8296032763111804,
+      "weightedF1": 0.8721299682524114,
+      "accuracy": 0.8740225890529973,
+      "precisionMacro": 0.8470392561636618,
+      "recallMacro": 0.8147568234008385,
+      "n": 3453.0,
+      "aucMacro": 0.9522844574994521,
+      "f1_negative": 0.766118836915297,
+      "f1_neutral": 0.922690992018244,
+      "f1_positive": 0.8
+    },
+    "DS66": {
+      "macroF1": 0.7806207091982168,
+      "weightedF1": 0.8232571833015199,
+      "accuracy": 0.8247569362105762,
+      "precisionMacro": 0.789592795013767,
+      "recallMacro": 0.7725628521033165,
+      "n": 4217.0,
+      "aucMacro": 0.9261334163513899,
+      "f1_negative": 0.716148445336008,
+      "f1_neutral": 0.8813033359193174,
+      "f1_positive": 0.7444103463393248
+    },
+    "DS50": {
+      "macroF1": 0.7480355399940759,
+      "weightedF1": 0.7873831116450517,
+      "accuracy": 0.7884853487412299,
+      "precisionMacro": 0.7533605222646461,
+      "recallMacro": 0.7431212728299514,
+      "n": 4846.0,
+      "aucMacro": 0.9015526430749422,
+      "f1_negative": 0.6941870261162595,
+      "f1_neutral": 0.8468530269250558,
+      "f1_positive": 0.7030665669409126
+    }
+  },
+  "finbert_off_the_shelf": {
+    "DS100": {
+      "macroF1": 0.962503461452302,
+      "weightedF1": 0.9720392191964458,
+      "accuracy": 0.9717314487632509,
+      "precisionMacro": 0.9505230688525548,
+      "recallMacro": 0.9758738660956036,
+      "n": 2264.0,
+      "aucMacro": 0.99695673184168,
+      "f1_negative": 0.9430379746835442,
+      "f1_neutral": 0.9824689554419282,
+      "f1_positive": 0.9620034542314335
+    },
+    "DS75": {
+      "macroF1": 0.9364610645058223,
+      "weightedF1": 0.947969708200476,
+      "accuracy": 0.9472922096727483,
+      "precisionMacro": 0.9164582277535919,
+      "recallMacro": 0.9606479647629591,
+      "n": 3453.0,
+      "aucMacro": 0.9937143403746372,
+      "f1_negative": 0.9177777777777778,
+      "f1_neutral": 0.9610951008645533,
+      "f1_positive": 0.9305103148751357
+    },
+    "DS66": {
+      "macroF1": 0.9077867976234052,
+      "weightedF1": 0.9191855896470197,
+      "accuracy": 0.9181882855110268,
+      "precisionMacro": 0.8846114008349826,
+      "recallMacro": 0.9381752343687495,
+      "n": 4217.0,
+      "aucMacro": 0.9867661048651121,
+      "f1_negative": 0.8902654867256637,
+      "f1_neutral": 0.934567901234568,
+      "f1_positive": 0.8985270049099835
+    },
+    "DS50": {
+      "macroF1": 0.8825330133105712,
+      "weightedF1": 0.890836765541676,
+      "accuracy": 0.8895996698307883,
+      "precisionMacro": 0.8583841849307839,
+      "recallMacro": 0.9162994939486847,
+      "n": 4846.0,
+      "aucMacro": 0.9764900829817923,
+      "f1_negative": 0.8785607196401799,
+      "f1_neutral": 0.9070877708409842,
+      "f1_positive": 0.8619505494505495
+    }
+  },
+  "so_pmi_sentfin_test": {
+    "macroF1": 0.4224563199162574,
+    "weightedF1": 0.4239974766288389,
+    "accuracy": 0.43202846975088965,
+    "n": 1405.0,
+    "neutralBand": 0.5
+  }
+}
