@@ -256,6 +256,7 @@ These do **not** call a model, and most do not call the API:
 | **Llama 3.1 8B** (`llama3.1:8b-instruct-q4_K_M`) | summaries and answers, each claim citing sentences | GPU, through Ollama | pipeline step 9, Ask, Analyze |
 | **DeBERTa-v3 NLI** (`MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli`) | does a sentence support or contradict a claim | GPU in the batch run, CPU in Ask and Analyze | pipeline step 10, Ask, Analyze |
 | **Whisper base.en** (`openai/whisper-base.en`) | speech to text | CPU | microphone |
+| **Integrated Gradients** (own implementation over the FinBERT input, 48 steps) | which words moved a company's sentiment | CPU, about 2 s per mention | `GET /api/documents/{id}/explain`, the "Why this score" tab |
 | **Tesseract 5** | reading scanned pages | CPU | pipeline step 2, Analyze |
 | CRF and DeBERTa token classifier | company-name finding (trained and measured, not in the default run) | - | Evaluation page only |
 

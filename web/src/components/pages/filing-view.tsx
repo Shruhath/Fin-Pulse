@@ -9,6 +9,7 @@ import { EntityList } from "@/components/evidence/entity-list";
 import { EventCard } from "@/components/evidence/event-card";
 import { VerifiedSummary } from "@/components/evidence/claims";
 import { DocReader } from "@/components/evidence/doc-reader";
+import { WhyPanel, type WhyTarget } from "@/components/evidence/why-panel";
 import { Empty } from "@/components/ui/states";
 import type { DocumentDetail } from "@/lib/api/types";
 
@@ -20,6 +21,7 @@ import type { DocumentDetail } from "@/lib/api/types";
 export function FilingView({ doc, at }: { doc: DocumentDetail; at?: { start: number; end: number } | null }) {
   const [pane, setPane] = useState<"read" | "checks">("read");
   const [tab, setTab] = useState("summary");
+  const [why, setWhy] = useState<WhyTarget | null>(null);
   const claims = doc.summary?.claims.length ?? 0;
   const companies = new Set(doc.spans.map((s) => s.entityId).filter(Boolean)).size;
 
@@ -38,7 +40,15 @@ export function FilingView({ doc, at }: { doc: DocumentDetail; at?: { start: num
       </div>
       <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_410px]">
         <div className={clsx(pane === "read" ? "block" : "hidden", "min-w-0 xl:block")}>
-          <DocReader doc={doc} at={at} />
+          <DocReader
+            doc={doc}
+            at={at}
+            onExplain={(span) => {
+              setWhy({ documentId: doc.id, span });
+              setTab("why");
+              setPane("checks");
+            }}
+          />
         </div>
         <aside className={clsx(pane === "checks" ? "block" : "hidden", "min-w-0 xl:sticky xl:top-8 xl:block xl:self-start")}>
           <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-1 xl:max-h-[calc(100dvh-4rem)] xl:overflow-y-auto">
@@ -50,6 +60,7 @@ export function FilingView({ doc, at }: { doc: DocumentDetail; at?: { start: num
                   { value: "summary", label: "Summary", count: claims },
                   { value: "companies", label: "Companies", count: companies },
                   { value: "events", label: "Events", count: doc.events.length },
+                  { value: "why", label: "Why this score" },
                 ]}
               />
               <TabPanel value="summary" className="px-5 pb-5">
@@ -57,6 +68,9 @@ export function FilingView({ doc, at }: { doc: DocumentDetail; at?: { start: num
               </TabPanel>
               <TabPanel value="companies" className="px-3 pb-4">
                 <EntityList doc={doc} />
+              </TabPanel>
+              <TabPanel value="why" className="px-5 pb-5">
+                <WhyPanel target={why} />
               </TabPanel>
               <TabPanel value="events" className="space-y-6 px-5 pb-5">
                 {doc.events.length === 0 ? (

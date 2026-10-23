@@ -132,6 +132,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/documents/{doc_id}/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Explain Mention
+         * @description Why the fine-tuned FinBERT scored the company at [start, end) the way it did (Integrated Gradients).
+         */
+        get: operations["explain_mention_api_documents__doc_id__explain_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/entities": {
         parameters: {
             query?: never;
@@ -754,6 +774,38 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** ExplainWord */
+        ExplainWord: {
+            /** Entity */
+            entity: boolean;
+            /** Text */
+            text: string;
+            /** Weight */
+            weight: number;
+        };
+        /**
+         * Explanation
+         * @description Integrated Gradients for one scored mention: which words moved the score of the predicted label.
+         */
+        Explanation: {
+            /** Convergence */
+            convergence: number;
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "positive" | "negative" | "neutral";
+            /** Model */
+            model: string | null;
+            /** Probabilities */
+            probabilities: {
+                [key: string]: number;
+            };
+            /** Steps */
+            steps: number;
+            /** Words */
+            words: components["schemas"]["ExplainWord"][];
+        };
         /** FilingEntity */
         FilingEntity: {
             /** Id */
@@ -1355,6 +1407,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    explain_mention_api_documents__doc_id__explain_get: {
+        parameters: {
+            query: {
+                start: number;
+                end: number;
+                steps?: number;
+            };
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Explanation"];
                 };
             };
             /** @description Validation Error */

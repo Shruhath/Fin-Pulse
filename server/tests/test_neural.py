@@ -115,3 +115,18 @@ def test_nli_maps_the_models_own_label_names_to_entail_neutral_contradict(tmp_pa
     probs = Nli(str(directory), device="cpu").predict([("the fine was four lakh", "the fine was four lakh")])
     assert probs[0].argmax() == 0 and probs[0, 0] > 0.99  # reported as the first column: entailment
     assert probs.sum() == pytest.approx(1.0, abs=1e-5)
+
+
+def test_integrated_gradients_add_up_to_the_score_difference_and_mark_the_company(tmp_path):
+    from finpulse.sentiment.explain import explain
+
+    model = FinBert.from_base(str(tiny.classifier(tmp_path / "fb", PROSUS)), device="cpu")
+    text = "Yes Bank slumped after a fraud probe and a penalty"
+    result = explain(model, (text, 0, 8), steps=128)
+    assert result.label in LABELS and sum(result.probabilities.values()) == pytest.approx(1.0, abs=1e-5)
+    assert sum(w.entity for w in result.words) == 2  # "Yes Bank" sits between the markers
+    assert not result.words[-1].entity  # the last word is outside the markers
+    assert max(abs(w.weight) for w in result.words) == pytest.approx(1.0)
+    assert result.convergence < 0.1  # completeness: the attributions sum to f(x) - f(baseline)
+    other = next(name for name in LABELS if name != result.label)
+    assert explain(model, (text, 0, 8), steps=16, target=other).label == other

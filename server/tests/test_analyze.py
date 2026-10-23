@@ -152,7 +152,8 @@ def test_an_already_analysed_document_is_not_processed_twice(client, db, monkeyp
     again.status, again.attempts = "running", 1
     run_analysis(db, again)
     assert again.status == "done"
-    assert {s["status"] for s in again.stages if s["key"] != "ingest"} == {"skipped"}
+    later = [s for s in again.stages if s["key"] != "ingest"]
+    assert {(s["status"], s["note"], s["ms"]) for s in later} == {("done", "already analysed", 0)}
 
 
 def test_queue_claims_oldest_first_and_retries_then_fails(db):

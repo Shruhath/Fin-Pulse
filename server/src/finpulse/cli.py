@@ -315,6 +315,23 @@ def _ectsum(a: argparse.Namespace) -> int:
     return 0
 
 
+def _components(a: argparse.Namespace) -> int:
+    import json
+
+    from finpulse.core.settings import get_settings as settings
+    from finpulse.eval.components import record_components
+
+    nli = None
+    if not a.no_nli:
+        from finpulse.verify.nli import Nli
+
+        nli = Nli(device=a.device)
+    with session_scope() as s:
+        report = record_components(s, nli, settings().benchmark_dir)
+    print(json.dumps(report, indent=2))
+    return 0
+
+
 def _ask(a: argparse.Namespace) -> int:
     from finpulse.pipeline.ask import answer_question, load_runtime
 
@@ -503,6 +520,14 @@ def build_parser() -> argparse.ArgumentParser:
     ec.add_argument("--n", type=int, default=60)
     ec.add_argument("--no-nli", action="store_true")
     ec.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+
+    cp = add(
+        "components",
+        _components,
+        "measure the claim checker, event extraction and speech, and add rows to the Evaluation page",
+    )
+    cp.add_argument("--no-nli", action="store_true")
+    cp.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
 
     ask = add("ask", _ask, "ask a question of the corpus, or --eval to measure question answering")
     ask.add_argument("question", nargs="?")

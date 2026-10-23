@@ -24,7 +24,15 @@ interface Seg {
  * character offsets, never by searching for the surface form, so a wrong offset shows up as a
  * visibly wrong mark. Evidence for a claim is the only thing that gets the highlighter.
  */
-export function DocReader({ doc, at }: { doc: DocumentDetail; at?: { start: number; end: number } | null }) {
+export function DocReader({
+  doc,
+  at,
+  onExplain,
+}: {
+  doc: DocumentDetail;
+  at?: { start: number; end: number } | null;
+  onExplain?: (span: EntitySpan) => void;
+}) {
   const { span, entityId, setFocus } = useFocus();
 
   // arriving from an answer or a claim: mark the sentence it was checked against
@@ -100,13 +108,22 @@ export function DocReader({ doc, at }: { doc: DocumentDetail; at?: { start: numb
           const body = s.span ? (
             <mark
               tabIndex={0}
-              title={`${s.span.surface} · ${s.span.sentiment ?? "unscored"} · confidence ${fmtPct(s.span.confidence)}`}
+              role={onExplain && s.span.sentiment ? "button" : undefined}
+              title={`${s.span.surface} · ${s.span.sentiment ?? "unscored"} · confidence ${fmtPct(s.span.confidence)}${onExplain && s.span.sentiment ? " · click to see why" : ""}`}
+              onClick={() => onExplain && s.span!.sentiment && onExplain(s.span!)}
+              onKeyDown={(e) => {
+                if (onExplain && s.span!.sentiment && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  onExplain(s.span!);
+                }
+              }}
               onPointerEnter={() => setFocus({ entityId: s.span!.entityId })}
               onPointerLeave={() => setFocus({ entityId: null })}
               onFocus={() => setFocus({ entityId: s.span!.entityId })}
               onBlur={() => setFocus({ entityId: null })}
               className={clsx(
                 "rounded-[5px] bg-transparent px-0.5 font-medium text-ink outline-none transition-shadow",
+                onExplain && s.span.sentiment && "cursor-pointer",
                 s.span.sentiment === "positive" && "underline decoration-pos decoration-2 underline-offset-4 bg-pos-weak",
                 s.span.sentiment === "negative" && "underline decoration-neg decoration-2 underline-offset-4 bg-neg-weak",
                 s.span.sentiment === "neutral" && "underline decoration-neu decoration-2 underline-offset-4 bg-neu-weak",

@@ -98,6 +98,42 @@ def document(doc_id: int, db: Db) -> s.DocumentDetail:
     return q.document_detail(db, doc)
 
 
+@router.get("/documents/{doc_id}/explain", response_model=s.Explanation)
+def explain_mention(
+    doc_id: int,
+    db: Db,
+    start: Annotated[int, Query(ge=0)],
+    end: Annotated[int, Query(gt=0)],
+    steps: Annotated[int, Query(ge=8, le=128)] = 48,
+) -> s.Explanation:
+    """Why the fine-tuned FinBERT scored the company at [start, end) the way it did (Integrated Gradients)."""
+    doc = db.get(Document, doc_id)
+    if doc is None:
+        raise HTTPException(404, "no such document")
+    if end <= start or end > len(doc.clean_text):
+        raise HTTPException(422, "the span is outside the document")
+    try:
+        from finpulse.pipeline.sentiment import load_scoring_model
+        from finpulse.sentiment.explain import explain
+        from finpulse.sentiment.finbert import FinBert
+    except ImportError as exc:  # pragma: no cover - the neural extra is not installed
+        raise HTTPException(503, "explanations need the neural extra (torch, transformers)") from exc
+    model = load_scoring_model(device="cpu")
+    if not isinstance(model, FinBert):
+        raise HTTPException(
+            409, "explanations need the fine-tuned FinBERT; only the TF-IDF baseline is trained"
+        )
+    result = explain(model, (doc.clean_text, start, end), steps=steps)
+    return s.Explanation(
+        label=result.label,
+        probabilities=result.probabilities,
+        words=[s.ExplainWord(text=w.text, weight=w.weight, entity=w.entity) for w in result.words],
+        steps=result.steps,
+        convergence=result.convergence,
+        model=model.version,
+    )
+
+
 @router.get("/events", response_model=list[s.EventRecord])
 def events(
     db: Db,

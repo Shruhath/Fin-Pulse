@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import clsx from "clsx";
 
 import { PageHeader } from "@/components/app/page-header";
 import { TabBar, TabPanel, TabRoot } from "@/components/app/tab-bar";
@@ -52,10 +53,18 @@ const METRIC_LABEL: Record<string, string> = {
   bertScore: "BERTScore",
   attribution: "Attribution",
   unsupported: "Unsupported",
+  recallDifferent: "Finds a difference",
+  recallSame: "Confirms a match",
+  schemaValid: "Passes the schema",
+  agreeRecall: "Rule events it also finds",
+  agreePrecision: "Its events the rules agree with",
+  amountMatch: "Same amount as rules",
+  documents: "Documents",
+  wer: "Word error rate",
 };
 
-const COUNTS = new Set(["n", "goldSpans", "skipped"]);
-const THREE_PLACES = new Set(["ece", "ece_before"]);
+const COUNTS = new Set(["n", "goldSpans", "skipped", "documents"]);
+const THREE_PLACES = new Set(["ece", "ece_before", "wer"]);
 const formatMetric = (key: string, v: number) => (COUNTS.has(key) ? fmtInt(v) : v.toFixed(THREE_PLACES.has(key) ? 3 : 2));
 
 export function EvaluationView({ report, preview }: { report: EvalReport; preview: boolean }) {
@@ -115,7 +124,86 @@ export function EvaluationView({ report, preview }: { report: EvalReport; previe
           );
         })}
       </TabRoot>
+      <EveryModel rows={report.rows} />
     </>
+  );
+}
+
+interface ModelLine {
+  name: string;
+  job: string;
+  task: Task;
+  pick: (r: MetricRow) => boolean;
+  metric: string;
+  lowerIsBetter?: boolean;
+  note?: string;
+}
+
+const MODELS: ModelLine[] = [
+  { name: "FinBERT, entity-marked, fine-tuned", job: "Sentiment for each company", task: "sentiment", pick: (r) => /Entity-marked FinBERT/.test(r.model) && r.dataset.startsWith("SEntFiN"), metric: "macroF1" },
+  { name: "DeBERTa-v3 token classifier", job: "Finds company names", task: "ner", pick: (r) => /DeBERTa-v3 token/.test(r.model) && r.dataset.startsWith("SEntFiN"), metric: "spanF1" },
+  { name: "DeBERTa-v3 NLI", job: "Checks each claim against its source sentence", task: "summaries", pick: (r) => /NLI \(claim checker\)/.test(r.model), metric: "macroF1", note: "never misses a difference, rarely confirms a match" },
+  { name: "bge-base-en-v1.5 embedder, with keyword search", job: "Finds sentences by meaning", task: "qa", pick: (r) => !r.baseline && /llama/.test(r.model), metric: "hitAt8Entity", note: "measured through Ask" },
+  { name: "Qwen 2.5 7B", job: "Extracts events as structured records", task: "events", pick: (r) => /qwen/.test(r.model), metric: "schemaValid", note: "agrees with the rule baseline; no human labels yet" },
+  { name: "Llama 3.1 8B", job: "Writes summaries and answers, each claim cited", task: "summaries", pick: (r) => /^llama/.test(r.model), metric: "rouge1", note: "ECTSum sample, with the NLI check" },
+  { name: "Whisper base.en", job: "Turns a spoken question into text", task: "qa", pick: (r) => /Whisper base\.en with/.test(r.model), metric: "wer", lowerIsBetter: true, note: "synthetic speech only" },
+];
+
+/** One line per model in the system with the figure that measures it, so no model is left out of the report. */
+function EveryModel({ rows }: { rows: MetricRow[] }) {
+  return (
+    <section className="mt-12" aria-labelledby="every-model">
+      <h2 id="every-model" className="text-lg font-semibold text-ink">
+        Every model
+      </h2>
+      <p className="mt-1 mb-3 max-w-[70ch] text-sm text-ink-3">
+        Each model in the pipeline and how it was measured. The baseline is the best simpler method on the same data.
+        A dash means that measure has not been run.
+      </p>
+      <div className="overflow-x-auto rounded-2xl border border-line bg-surface shadow-1">
+        <table className="w-full text-base">
+          <thead>
+            <tr className="border-b border-line bg-surface-2/60 text-sm text-ink-3">
+              {["Model", "What it does", "Measure", "Value", "Best baseline", "Data"].map((h, i) => (
+                <th key={h} scope="col" className={clsx("px-4 py-3 font-medium whitespace-nowrap", i === 3 || i === 4 ? "text-right" : "text-left")}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {MODELS.map((m) => {
+              const row = rows.find((r) => r.task === m.task && m.pick(r) && r.metrics[m.metric] !== undefined);
+              const value = row?.metrics[m.metric];
+              const peers = row ? rows.filter((r) => r.task === m.task && r.baseline && r.dataset === row.dataset && r.metrics[m.metric] !== undefined).map((r) => r.metrics[m.metric]) : [];
+              const baseline = peers.length ? (m.lowerIsBetter ? Math.min(...peers) : Math.max(...peers)) : undefined;
+              return (
+                <tr key={m.name} className="border-b border-line last:border-0 align-top">
+                  <th scope="row" className="px-4 py-3 text-left font-semibold text-ink">
+                    {m.name}
+                  </th>
+                  <td className="px-4 py-3 text-ink-2">
+                    {m.job}
+                    {m.note && <span className="mt-0.5 block text-sm text-ink-3">{m.note}</span>}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-ink-2">
+                    {METRIC_LABEL[m.metric] ?? m.metric}
+                    <span className="ml-1 text-xs text-ink-3">{m.lowerIsBetter ? "lower is better" : "higher is better"}</span>
+                  </td>
+                  <td className="num px-4 py-3 text-right font-semibold text-ink">{value === undefined ? "–" : formatMetric(m.metric, value)}</td>
+                  <td className="num px-4 py-3 text-right text-ink-2">{baseline === undefined ? "–" : formatMetric(m.metric, baseline)}</td>
+                  <td className="px-4 py-3 text-sm text-ink-3">{row?.dataset ?? "Not measured yet"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 max-w-[70ch] text-sm text-ink-3">
+        Explanations: the sentiment of a company in a filing can be opened with <strong className="font-semibold">Why this score</strong>,
+        which shows how much each word pushed it (Integrated Gradients), with the error of the approximation shown next to it.
+      </p>
+    </section>
   );
 }
 

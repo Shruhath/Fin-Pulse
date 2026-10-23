@@ -491,3 +491,37 @@ def test_a_submitted_document_is_readable_by_id_but_not_part_of_the_corpus(clien
         len(body["events"]) == 1 and len(body["spans"]) == 1 and body["spans"][0]["sentiment"] == "positive"
     )
     assert {d.id for d in docs}.isdisjoint({submitted.id})
+
+
+def test_explain_returns_integrated_gradients_for_a_span_and_rejects_bad_spans(
+    client, db, monkeypatch, tmp_path
+):
+    pytest.importorskip("torch")
+    from finpulse.sentiment.finbert import FinBert
+    from tests import tiny
+
+    _, docs, _ = _seed(db)
+    model = FinBert.from_base(
+        str(tiny.classifier(tmp_path / "fb", {0: "positive", 1: "negative", 2: "neutral"})), device="cpu"
+    )
+    model.version = "tiny@test"
+    monkeypatch.setattr("finpulse.pipeline.sentiment.load_scoring_model", lambda **_: model)
+    start = TEXT.index("Yes Bank Limited")
+    body = client.get(
+        f"/api/documents/{docs[0].id}/explain", params={"start": start, "end": start + 16}
+    ).json()
+    assert body["label"] in {"positive", "negative", "neutral"} and body["model"] == "tiny@test"
+    assert sum(body["probabilities"].values()) == pytest.approx(1.0, abs=1e-5)
+    assert body["steps"] == 48 and any(w["entity"] for w in body["words"])
+    assert (
+        client.get(f"/api/documents/{docs[0].id}/explain", params={"start": 5, "end": 5}).status_code == 422
+    )
+    assert (
+        client.get(f"/api/documents/{docs[0].id}/explain", params={"start": 0, "end": 10**6}).status_code
+        == 422
+    )
+    assert client.get("/api/documents/999999/explain", params={"start": 0, "end": 4}).status_code == 404
+    monkeypatch.setattr("finpulse.pipeline.sentiment.load_scoring_model", lambda **_: object())
+    assert (
+        client.get(f"/api/documents/{docs[0].id}/explain", params={"start": 0, "end": 4}).status_code == 409
+    )

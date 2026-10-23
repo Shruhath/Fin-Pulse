@@ -163,6 +163,23 @@ class DocumentDetail(FilingItem):
     summary: Summary | None
 
 
+class ExplainWord(Api):
+    text: str
+    weight: float  # relative to the largest absolute weight in the window: -1 (against) to 1 (for)
+    entity: bool  # part of the company the score is about
+
+
+class Explanation(Api):
+    """Integrated Gradients for one scored mention: which words moved the score of the predicted label."""
+
+    label: SentimentLabel
+    probabilities: dict[str, float]
+    words: list[ExplainWord]
+    steps: int
+    convergence: float
+    model: str | None
+
+
 class Mention(Api):
     document_id: str
     document_title: str

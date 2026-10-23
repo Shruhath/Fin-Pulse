@@ -1248,6 +1248,86 @@
         "title": "Evidence",
         "type": "object"
       },
+      "ExplainWord": {
+        "properties": {
+          "entity": {
+            "title": "Entity",
+            "type": "boolean"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "text",
+          "weight",
+          "entity"
+        ],
+        "title": "ExplainWord",
+        "type": "object"
+      },
+      "Explanation": {
+        "description": "Integrated Gradients for one scored mention: which words moved the score of the predicted label.",
+        "properties": {
+          "convergence": {
+            "title": "Convergence",
+            "type": "number"
+          },
+          "label": {
+            "enum": [
+              "positive",
+              "negative",
+              "neutral"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "probabilities": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Probabilities",
+            "type": "object"
+          },
+          "steps": {
+            "title": "Steps",
+            "type": "integer"
+          },
+          "words": {
+            "items": {
+              "$ref": "#/components/schemas/ExplainWord"
+            },
+            "title": "Words",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "probabilities",
+          "words",
+          "steps",
+          "convergence",
+          "model"
+        ],
+        "title": "Explanation",
+        "type": "object"
+      },
       "FilingEntity": {
         "properties": {
           "id": {
@@ -2802,6 +2882,78 @@
           }
         },
         "summary": "Document"
+      }
+    },
+    "/api/documents/{doc_id}/explain": {
+      "get": {
+        "description": "Why the fine-tuned FinBERT scored the company at [start, end) the way it did (Integrated Gradients).",
+        "operationId": "explain_mention_api_documents__doc_id__explain_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "minimum": 0,
+              "title": "Start",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "End",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "steps",
+            "required": false,
+            "schema": {
+              "default": 48,
+              "maximum": 128,
+              "minimum": 8,
+              "title": "Steps",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Explanation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Explain Mention"
       }
     },
     "/api/entities": {
