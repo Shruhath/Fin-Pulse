@@ -79,6 +79,17 @@ When text is included, PANs are replaced by `X` of equal length (offsets stay va
 `person` are not exported and their mentions are left out. The team has not yet sought an ethics review;
 that, and written permission from SEBI before any republication of order text, are open items.
 
+Three fields still hold words taken from the orders even when no text is included: the document title,
+the arguments of an event and the text of a summary claim. They are de-identified before they are
+written (`server/src/finpulse/export/privacy.py`): e-mail addresses, phone numbers, PANs and account
+numbers are replaced by `[email]`, `[phone]`, `XXXXXXXXXX` and `[account]`; the name of an individual
+(after an honorific, before "HUF" or "Investment Adviser", a `person` entity, or a name found by a
+reviewer) by `[individual]`; and the party of a title that names no company by `[party withheld]`.
+Company, bank and firm names stay, including a firm that carries a partner's surname ("X and Co.").
+The counts of what was changed are in `MANIFEST.json` (`titles_redacted`, `event_arguments_redacted`,
+`claims_redacted`). This is best effort and is not a guarantee: a name that matches none of these rules
+can remain, so read the package before publishing it.
+
 ## 8. Licence, citation, contact
 
 Annotations, offsets, labels and derived metadata: CC BY 4.0. The source documents belong to their
