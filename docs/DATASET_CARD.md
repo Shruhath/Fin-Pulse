@@ -17,6 +17,12 @@ Bankruptcy Board of India's mirror) and RBI press releases, with:
 
 Human (gold) and machine (silver) labels are separate files, never merged.
 
+## Synthetic release
+
+`finpulse synthetic` builds **FinPulse Synthetic Filings v1**, a separate fictional benchmark of 15 filings
+with exact gold labels for entity sentiment, events, and claims. It is published at
+https://doi.org/10.21227/hhey-hv91. It does not contain the collected corpus described in this card.
+
 ## 2. Sources and terms
 
 | Source | What is taken | Terms as understood | In the package |

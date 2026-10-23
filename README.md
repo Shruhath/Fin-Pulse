@@ -42,6 +42,13 @@ once with `FINPULSE_ONLINE=1`. Voice needs a secure page, so open the app on `lo
 
 Without a backend, `scripts/live.sh preview` serves the web app on clearly labelled synthetic data.
 
+## Frozen demonstration
+
+The public demonstration at https://finpulse-team6.vercel.app is a frozen copy of selected local results. It
+serves recorded pages, cited Ask responses, and selected explanation panels without a database or local models.
+Analyze and unrecorded questions explain that they are unavailable in the frozen copy. Regenerate its cache with
+`python3 scripts/make_snapshot.py`; the snapshot contains source text and remains git-ignored.
+
 The corpus (`data-set/`) and everything derived from it (`data/`) are git-ignored. `docs/BACKEND.md` lists
 the commands that build the database from the collected documents, train the models and run every stage.
 
@@ -87,5 +94,9 @@ The corpus is collected from public regulator sources at one request per second 
 User-Agent; `docs/DATASET_CARD.md` lists what is taken from each and under what terms. Order text is not
 republished: the dataset package carries offsets, hashes and labels, and includes text only if its manifest
 says so. Orders name individuals; see the card's privacy section before reusing anything.
+
+The published release is **FinPulse Synthetic Filings v1**, a separate fictional benchmark with exact gold
+labels: https://doi.org/10.21227/hhey-hv91. Build it with `finpulse synthetic`; it does not contain the
+collected corpus.
 
 This is a student project and is not investment advice.

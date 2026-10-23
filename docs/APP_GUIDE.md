@@ -5,6 +5,10 @@ how the models work to read it. (How the app works inside is in `docs/BACKEND_FL
 
 Open the app at **http://localhost:3000** after running `make live`.
 
+The public demonstration at **https://finpulse-team6.vercel.app** is a frozen copy. It shows recorded pages,
+selected explanations, and recorded Ask responses without starting the database or models. Analyze and a new,
+unrecorded question politely explain that they are unavailable there.
+
 ---
 
 ## 1. What FinPulse is, in three sentences
