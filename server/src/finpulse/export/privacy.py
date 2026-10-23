@@ -42,7 +42,7 @@ _BODY_WORDS = frozenset(
     """ltd limited pvt private llp llc inc plc bank company corporation corp co industries finance
     securities exchange fund trust enterprises holdings services entity entities india international
     group ventures capital broker brokers brokerage association society authority board council
-    committee ministry department government bv gmbh sa ag nv pte pty ulc lp sarl spa""".split()
+    committee ministry department government solutions bv gmbh sa ag nv pte pty ulc lp sarl spa""".split()
 )
 _WORD = re.compile(r"[A-Za-z][\w'’-]*")
 _PARTY = re.compile(r"(?i)\b(?:in respect (?:of|to)|against)\s+(?P<party>.+?)(?=\s+in the matter of\b|\s*$)")
@@ -54,6 +54,16 @@ def _words(text: str) -> list[str]:
 
 def _names_a_body(text: str) -> bool:
     return any(w in _BODY_WORDS for w in _words(text))
+
+
+def looks_like_individual(name: str, *, listed: bool) -> bool:
+    """True for an unlisted entity whose name carries no company word.
+
+    Entities are created from the parties in order titles, so a few of kind `company` are people ("A and
+    B", "X - HUF", "records of Y Investment Adviser"). A listed company (NSE symbol or ISIN) is never
+    treated as an individual; an unlisted one is kept only when its name has a word that marks a body.
+    """
+    return not listed and not _names_a_body(name)
 
 
 def person_names(entity_names: Iterable[str]) -> list[str]:

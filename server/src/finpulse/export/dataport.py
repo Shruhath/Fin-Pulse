@@ -39,7 +39,7 @@ from finpulse.db.models import (
     Sentence,
     Summary,
 )
-from finpulse.export.privacy import Redactor
+from finpulse.export.privacy import Redactor, looks_like_individual
 from finpulse.preprocess.normalize import mask_pan
 from finpulse.sentiment.data import split_of
 
@@ -53,30 +53,7 @@ the property of their publishers (SEBI, IBBI and others) and are not included un
 says `include_text: true`.
 """
 
-NOTE = """# finpulse-corpus-v1
-
-Entity-level sentiment, event and summary annotations over Indian regulatory disclosures (SEBI orders,
-NCLT admission orders collected through IBBI, and RBI press releases).
-
-Files
-- documents.parquet, sentences.parquet: metadata, hashes and offsets (text only if the manifest says so)
-- mentions.parquet: entity mentions as offsets into each document's clean text, with the linked company
-- entities.parquet, entity_gazetteer.csv: companies and banks (listed names from the NSE security master)
-- sentiment_gold.jsonl / sentiment_silver.jsonl: human labels and model labels, kept apart
-- events_gold.jsonl / events_silver.jsonl: typed events with trigger offsets and arguments
-- summaries_gold.jsonl / summaries_silver.jsonl: reference summaries and verified model summaries
-- eval_results.jsonl: every metric reported for the models, with the commit and data hash that produced it
-- splits/{train,dev,test}.txt: document ids by hash, 80/10/10
-- MANIFEST.json: counts, flags and a SHA-256 for every file
-
-Offsets are half-open [start, end) character positions into the document's clean text.
-Gold and silver labels are never mixed. The gold files are empty until the human annotation is done.
-The document text is not included. Titles, event arguments and claim text are de-identified: e-mail
-addresses, phone numbers, PANs, account numbers and the names of individuals are replaced by
-`[email]`, `[phone]`, `XXXXXXXXXX`, `[account]` and `[individual]`, and the party of an order that
-names no company is shown as `[party withheld]`. The counts are in MANIFEST.json. See the dataset
-card for collection, cleaning and limits.
-"""
+NOTE = Path(__file__).with_name("package_readme.md").read_text(encoding="utf-8")
 
 
 @dataclass(slots=True)
@@ -128,6 +105,7 @@ def export_dataport(
         for e in session.scalars(
             select(Entity).where(Entity.kind.in_(("company", "bank"))).order_by(Entity.id)
         )
+        if not looks_like_individual(e.canonical_name, listed=bool(e.nse_symbol or e.isin))
     }
     person_ids = list(session.scalars(select(Entity.id).where(Entity.kind == "person")))
     redact = Redactor(

@@ -1,4 +1,4 @@
-from finpulse.export.privacy import INDIVIDUAL, WITHHELD, Redactor, person_names
+from finpulse.export.privacy import INDIVIDUAL, WITHHELD, Redactor, looks_like_individual, person_names
 
 NAMES = ["Atul Shah", "Atul Kumar Shah", "Kanchan Agarwal", "Stock Broker", "22 entities", "to Ace Light"]
 
@@ -120,3 +120,12 @@ def test_names_a_reviewer_supplies_are_removed_as_given_and_a_colonel_is_an_hono
     )
     assert r.text("petition filed by Col. Gautam Mullick & Ors.") == f"petition filed by {INDIVIDUAL} & Ors."
     assert r.text("ab is too short to match") == "ab is too short to match"
+
+
+def test_an_unlisted_entity_without_a_company_word_is_treated_as_an_individual():
+    assert looks_like_individual("Himadri Acharya Bhaduri and Atul Sharma", listed=False)
+    assert looks_like_individual("Kiran Ajit Chawla and Jagjit Singh Chawla - HUF", listed=False)
+    assert looks_like_individual("records of Manu Chhabra Investment Adviser", listed=False)
+    assert not looks_like_individual("Zelkova Builders Private Limited", listed=False)
+    assert not looks_like_individual("SPG Prints B.V", listed=False)
+    assert not looks_like_individual("Tata Motors", listed=True)
