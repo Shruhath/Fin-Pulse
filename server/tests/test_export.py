@@ -272,8 +272,14 @@ def test_a_document_analysed_through_the_analyze_page_is_not_exported(db, tmp_pa
                  status="analysed", is_submission=True)
     )  # fmt: skip
     db.flush()
+    other = db.query(Document).filter(Document.is_submission.is_(True)).one()
+    db.add(Summary(scope="document", doc_id=other.id, model="llama", prompt_version="summary-v1"))
+    db.flush()
     export_dataport(db, tmp_path / "pkg")
     assert len(pq.read_table(tmp_path / "pkg" / "documents.parquet")) == 1
+    assert (
+        len(_lines(tmp_path / "pkg" / "summaries_silver.jsonl")) == 1
+    )  # the submission's summary is left out
 
 
 def test_the_words_free_package_has_no_title_event_arguments_or_claim_text(db, tmp_path):

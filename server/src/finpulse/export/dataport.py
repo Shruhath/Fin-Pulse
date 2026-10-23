@@ -359,6 +359,8 @@ def export_dataport(
     silver_summaries = []
     manifest.counts["claims_redacted"] = 0
     for summary in session.scalars(select(Summary).order_by(Summary.id)):
+        if summary.doc_id is not None and summary.doc_id not in doc_ids:
+            continue  # a summary of a document analysed through the Analyze page
         claims = list(
             session.scalars(select(Claim).where(Claim.summary_id == summary.id).order_by(Claim.idx))
         )
