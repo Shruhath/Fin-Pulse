@@ -394,6 +394,16 @@ def _explain_stats(a: argparse.Namespace) -> int:
     return 0
 
 
+def _synthetic(a: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from finpulse.export.synthetic import build_synthetic
+
+    counts = build_synthetic(Path(a.out))
+    print(f"wrote {a.out}: " + ", ".join(f"{k}={v}" for k, v in counts.items()))
+    return 0
+
+
 def _ask(a: argparse.Namespace) -> int:
     from finpulse.pipeline.ask import answer_question, load_runtime
 
@@ -609,6 +619,9 @@ def build_parser() -> argparse.ArgumentParser:
     xs = add("explain-stats", _explain_stats, "measure Integrated Gradients on a sample of real mentions")
     xs.add_argument("--n", type=int, default=120)
     xs.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
+
+    sy = add("synthetic", _synthetic, "write the fictional benchmark (FinPulse Synthetic Filings v1)")
+    sy.add_argument("--out", default="data/export/finpulse-synthetic-v1")
 
     ab = add("ablation", _ablation, "remove one design choice at a time (retrieval variants, entity marking)")
     ab.add_argument("which", nargs="+", choices=["retrieval", "marking"])
