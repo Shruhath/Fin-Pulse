@@ -224,3 +224,42 @@ def test_including_text_masks_pan_numbers_and_says_so_in_the_manifest(db, tmp_pa
     assert json.loads((out / "MANIFEST.json").read_text())["include_text"] is True
     mentions = pq.read_table(out / "mentions.parquet").to_pylist()
     assert mentions[0]["surface"] == "Yes Bank"
+
+
+def test_titles_event_arguments_and_claims_are_cleaned_of_personal_data(db, tmp_path):
+    doc = _seed(db)
+    doc.title = "Consent order against Some Person in the matter of Yes Bank Limited"
+    summary = db.query(Summary).one()
+    db.add(
+        Claim(
+            summary_id=summary.id,
+            idx=1,
+            text="Some Person can be reached at sp@example.test.",
+            verification="unverified",
+            cited=[],
+        )
+    )
+    event = db.query(Event).one()
+    event.arguments = {"noticee": "Some Person", "action": "penalty"}
+    db.flush()
+    export_dataport(db, tmp_path / "pkg")
+    out = tmp_path / "pkg"
+    (row,) = pq.read_table(out / "documents.parquet").to_pylist()
+    assert row["title"] == "Consent order against [individual] in the matter of Yes Bank Limited"
+    (silver,) = _lines(out / "events_silver.jsonl")
+    assert silver["arguments"] == {"noticee": "[individual]", "action": "penalty"}
+    (summary_row,) = _lines(out / "summaries_silver.jsonl")
+    assert [c["text"] for c in summary_row["claims"]] == [
+        "SEBI fined Yes Bank.",
+        "[individual] can be reached at [email].",
+    ]
+    counts = json.loads((out / "MANIFEST.json").read_text())["counts"]
+    assert (counts["titles_redacted"], counts["event_arguments_redacted"], counts["claims_redacted"]) == (
+        1,
+        1,
+        1,
+    )
+    everything = "".join(
+        p.read_text(errors="ignore") for p in out.rglob("*") if p.suffix in {".jsonl", ".json", ".md"}
+    )
+    assert "Some Person" not in everything and "sp@example.test" not in everything

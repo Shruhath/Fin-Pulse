@@ -5,7 +5,8 @@ regulatory documents, because SEBI asks for permission before its orders are rep
 orders name individuals. Pass `include_text=True` once that permission is in hand (PANs are then
 masked in the text). Gold (human) and silver (machine) labels go to separate files and are never
 merged. The SEntFiN aliases in the gazetteer are left out: that dataset asks to be cited, not
-re-hosted. Individuals (entities of kind `person`) are not exported.
+re-hosted. Individuals (entities of kind `person`) are not exported, and the words kept from the
+orders (titles, event arguments, claim text) are passed through `privacy.Redactor` first.
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ from finpulse.db.models import (
     Sentence,
     Summary,
 )
+from finpulse.export.privacy import Redactor, looks_like_individual
 from finpulse.preprocess.normalize import mask_pan
 from finpulse.sentiment.data import split_of
 
@@ -51,25 +53,7 @@ the property of their publishers (SEBI, IBBI and others) and are not included un
 says `include_text: true`.
 """
 
-NOTE = """# finpulse-corpus-v1
-
-Entity-level sentiment, event and summary annotations over Indian regulatory disclosures (SEBI orders
-and NCLT admission orders collected through IBBI).
-
-Files
-- documents.parquet, sentences.parquet: metadata, hashes and offsets (text only if the manifest says so)
-- mentions.parquet: entity mentions as offsets into each document's clean text, with the linked company
-- entities.parquet, entity_gazetteer.csv: companies and banks (listed names from the NSE security master)
-- sentiment_gold.jsonl / sentiment_silver.jsonl: human labels and model labels, kept apart
-- events_gold.jsonl / events_silver.jsonl: typed events with trigger offsets and arguments
-- summaries_gold.jsonl / summaries_silver.jsonl: reference summaries and verified model summaries
-- eval_results.jsonl: every metric reported for the models, with the commit and data hash that produced it
-- splits/{train,dev,test}.txt: document ids by hash, 80/10/10
-- MANIFEST.json: counts, flags and a SHA-256 for every file
-
-Offsets are half-open [start, end) character positions into the document's clean text.
-Gold and silver labels are never mixed. See the dataset card for collection, cleaning and limits.
-"""
+NOTE = Path(__file__).with_name("package_readme.md").read_text(encoding="utf-8")
 
 
 @dataclass(slots=True)
@@ -110,7 +94,9 @@ def _jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> int:
     return n
 
 
-def export_dataport(session: Session, out_dir: Path, *, include_text: bool = False) -> Manifest:
+def export_dataport(
+    session: Session, out_dir: Path, *, include_text: bool = False, extra_names: Iterable[str] = ()
+) -> Manifest:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "splits").mkdir(exist_ok=True)
     manifest = Manifest(include_text=include_text)
@@ -119,7 +105,16 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
         for e in session.scalars(
             select(Entity).where(Entity.kind.in_(("company", "bank"))).order_by(Entity.id)
         )
+        if not looks_like_individual(e.canonical_name, listed=bool(e.nse_symbol or e.isin))
     }
+    person_ids = list(session.scalars(select(Entity.id).where(Entity.kind == "person")))
+    redact = Redactor(
+        [
+            *session.scalars(select(Entity.canonical_name).where(Entity.id.in_(person_ids))),
+            *session.scalars(select(EntityAlias.alias).where(EntityAlias.entity_id.in_(person_ids))),
+        ],
+        extra_names,
+    )
     docs = list(
         session.scalars(
             select(Document).where(Document.status.in_(("parsed", "analysed"))).order_by(Document.id)
@@ -133,7 +128,7 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
             "doc_id": d.id,
             "source_kind": d.source_kind,
             "doc_type": d.doc_type,
-            "title": d.title,
+            "title": redact.title(d.title),
             "url": d.url,
             "published_at": d.published_at,
             "sha256": d.raw_sha256,
@@ -145,6 +140,9 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
         }
         for d in docs
     ]
+    manifest.counts["titles_redacted"] = sum(
+        row["title"] != d.title for row, d in zip(doc_rows, docs, strict=True)
+    )
     manifest.counts["documents"] = _parquet(
         out_dir / "documents.parquet",
         doc_rows,
@@ -289,7 +287,12 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
 
     # events
     gold_events = (
-        {"passage_id": a.payload["passage_id"], "doc_id": a.doc_id, "annotator": a.annotator, **ev}
+        {
+            "passage_id": a.payload["passage_id"],
+            "doc_id": a.doc_id,
+            "annotator": a.annotator,
+            **{**ev, "arguments": redact.value(ev.get("arguments"))},
+        }
         for a in session.scalars(
             select(Annotation).where(Annotation.task == "event", Annotation.label_source == "gold")
         )
@@ -297,21 +300,26 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
     )
     manifest.counts["events_gold"] = _jsonl(out_dir / "events_gold.jsonl", gold_events)
     slug_of = {i: e.slug for i, e in exported_entities.items()}
-    silver_events = (
-        {
-            "doc_id": e.doc_id,
-            "entity": slug_of.get(e.entity_id),
-            "type": e.type,
-            "trigger": [e.trigger_start, e.trigger_end],
-            "arguments": e.arguments,
-            "amount_inr": e.amount_inr,
-            "event_date": e.event_date,
-            "extractor": e.extractor,
-            "schema_valid": e.schema_valid,
-        }
-        for e in session.scalars(select(Event).order_by(Event.id))
-        if e.doc_id in doc_ids
-    )
+    silver_events = []
+    manifest.counts["event_arguments_redacted"] = 0
+    for e in session.scalars(select(Event).order_by(Event.id)):
+        if e.doc_id not in doc_ids:
+            continue
+        arguments = redact.value(e.arguments)
+        manifest.counts["event_arguments_redacted"] += arguments != e.arguments
+        silver_events.append(
+            {
+                "doc_id": e.doc_id,
+                "entity": slug_of.get(e.entity_id),
+                "type": e.type,
+                "trigger": [e.trigger_start, e.trigger_end],
+                "arguments": arguments,
+                "amount_inr": e.amount_inr,
+                "event_date": e.event_date,
+                "extractor": e.extractor,
+                "schema_valid": e.schema_valid,
+            }
+        )
     manifest.counts["events_silver"] = _jsonl(out_dir / "events_silver.jsonl", silver_events)
 
     # summaries
@@ -320,7 +328,7 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
             "passage_id": a.payload["passage_id"],
             "doc_id": a.doc_id,
             "annotator": a.annotator,
-            "claims": a.payload["claims"],
+            "claims": redact.value(a.payload["claims"]),
         }
         for a in session.scalars(
             select(Annotation).where(Annotation.task == "summary", Annotation.label_source == "gold")
@@ -328,8 +336,12 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
     )
     manifest.counts["summaries_gold"] = _jsonl(out_dir / "summaries_gold.jsonl", gold_summaries)
     silver_summaries = []
+    manifest.counts["claims_redacted"] = 0
     for summary in session.scalars(select(Summary).order_by(Summary.id)):
-        claims = session.scalars(select(Claim).where(Claim.summary_id == summary.id).order_by(Claim.idx))
+        claims = list(
+            session.scalars(select(Claim).where(Claim.summary_id == summary.id).order_by(Claim.idx))
+        )
+        manifest.counts["claims_redacted"] += sum(redact.text(c.text) != c.text for c in claims)
         silver_summaries.append(
             {
                 "summary_id": summary.id,
@@ -340,7 +352,7 @@ def export_dataport(session: Session, out_dir: Path, *, include_text: bool = Fal
                 "prompt_version": summary.prompt_version,
                 "claims": [
                     {
-                        "text": c.text,
+                        "text": redact.text(c.text),
                         "verification": c.verification,
                         "nli_entail": c.nli_entail,
                         "nli_contra": c.nli_contra,

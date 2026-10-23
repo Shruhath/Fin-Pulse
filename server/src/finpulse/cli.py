@@ -262,7 +262,8 @@ def _export(a: argparse.Namespace) -> int:
 
     out = Path(a.out)
     with session_scope() as s:
-        m = export_dataport(s, out, include_text=a.include_text)
+        names = Path(a.names).read_text(encoding="utf-8").splitlines() if a.names else []
+        m = export_dataport(s, out, include_text=a.include_text, extra_names=names)
     print(f"wrote {out} ({'with' if m.include_text else 'without'} document text)")
     print("  " + ", ".join(f"{k}={v}" for k, v in m.counts.items()))
     return 0
@@ -487,6 +488,11 @@ def build_parser() -> argparse.ArgumentParser:
     ex.add_argument("--out", default="data/export/finpulse-corpus-v1")
     ex.add_argument(
         "--include-text", action="store_true", help="include document text (needs the publishers' permission)"
+    )
+    ex.add_argument(
+        "--names",
+        help="a text file, one name per line, of individuals to remove from titles, events and claims "
+        "(besides the person entities); keep it out of the repository",
     )
 
     oa = add("openapi", _openapi, "write or check the OpenAPI contract the web app is generated from")
