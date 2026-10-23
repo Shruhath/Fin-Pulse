@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-10-23T15:29:33+00:00",
+  "retrieval": {
+    "bm25": {
+      "entity": 0.95,
+      "amount": 0.35,
+      "n": 40.0
+    },
+    "dense": {
+      "entity": 0.8,
+      "amount": 0.25,
+      "n": 40.0
+    },
+    "hybrid": {
+      "entity": 1.0,
+      "amount": 0.4,
+      "n": 40.0
+    },
+    "bm25-filter": {
+      "entity": 1.0,
+      "amount": 0.35,
+      "n": 40.0
+    },
+    "dense-filter": {
+      "entity": 1.0,
+      "amount": 0.25,
+      "n": 40.0
+    },
+    "hybrid-filter": {
+      "entity": 1.0,
+      "amount": 0.35,
+      "n": 40.0
+    }
+  }
+}

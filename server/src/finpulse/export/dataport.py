@@ -56,6 +56,17 @@ says `include_text: true`.
 NOTE = Path(__file__).with_name("package_readme.md").read_text(encoding="utf-8")
 
 
+_DEIDENTIFIED = NOTE[NOTE.index("## What was removed") : NOTE.index("## Load it")]
+_WORDS_FREE = """## What was removed
+
+The document text is not included, and neither is any other field made of words taken from an order:
+the document title, the arguments of an event and the text of a claim are empty (null). What remains is
+offsets, hashes, labels, verdicts, scores, counts and the names of listed companies and banks. A claim
+still carries its verdict, its NLI scores and the sentence it was checked against, as ids.
+
+"""
+
+
 @dataclass(slots=True)
 class Manifest:
     include_text: bool
@@ -95,8 +106,16 @@ def _jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> int:
 
 
 def export_dataport(
-    session: Session, out_dir: Path, *, include_text: bool = False, extra_names: Iterable[str] = ()
+    session: Session,
+    out_dir: Path,
+    *,
+    include_text: bool = False,
+    extra_names: Iterable[str] = (),
+    words: bool = True,
 ) -> Manifest:
+    """`words=False` also leaves out every field that carries words taken from an order: the document
+    title, the arguments of an event and the text of a claim. What remains is offsets, hashes, labels,
+    verdicts, scores and counts, so nothing in the package can name anyone."""
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "splits").mkdir(exist_ok=True)
     manifest = Manifest(include_text=include_text)
@@ -117,7 +136,9 @@ def export_dataport(
     )
     docs = list(
         session.scalars(
-            select(Document).where(Document.status.in_(("parsed", "analysed"))).order_by(Document.id)
+            select(Document)
+            .where(Document.status.in_(("parsed", "analysed")), Document.is_submission.is_(False))
+            .order_by(Document.id)
         )
     )
     doc_ids = {d.id for d in docs}
@@ -128,7 +149,7 @@ def export_dataport(
             "doc_id": d.id,
             "source_kind": d.source_kind,
             "doc_type": d.doc_type,
-            "title": redact.title(d.title),
+            "title": redact.title(d.title) if words else None,
             "url": d.url,
             "published_at": d.published_at,
             "sha256": d.raw_sha256,
@@ -313,7 +334,7 @@ def export_dataport(
                 "entity": slug_of.get(e.entity_id),
                 "type": e.type,
                 "trigger": [e.trigger_start, e.trigger_end],
-                "arguments": arguments,
+                "arguments": arguments if words else None,
                 "amount_inr": e.amount_inr,
                 "event_date": e.event_date,
                 "extractor": e.extractor,
@@ -338,6 +359,8 @@ def export_dataport(
     silver_summaries = []
     manifest.counts["claims_redacted"] = 0
     for summary in session.scalars(select(Summary).order_by(Summary.id)):
+        if summary.doc_id is not None and summary.doc_id not in doc_ids:
+            continue  # a summary of a document analysed through the Analyze page
         claims = list(
             session.scalars(select(Claim).where(Claim.summary_id == summary.id).order_by(Claim.idx))
         )
@@ -352,7 +375,7 @@ def export_dataport(
                 "prompt_version": summary.prompt_version,
                 "claims": [
                     {
-                        "text": redact.text(c.text),
+                        "text": redact.text(c.text) if words else None,
                         "verification": c.verification,
                         "nli_entail": c.nli_entail,
                         "nli_contra": c.nli_contra,
@@ -390,7 +413,8 @@ def export_dataport(
         (out_dir / "splits" / f"{name}.txt").write_text("".join(f"{i}\n" for i in ids))
         manifest.counts[f"split_{name}"] = len(ids)
 
-    (out_dir / "README.md").write_text(NOTE, encoding="utf-8")
+    readme = NOTE if words else NOTE.replace(_DEIDENTIFIED, _WORDS_FREE)
+    (out_dir / "README.md").write_text(readme, encoding="utf-8")
     (out_dir / "LICENSE.txt").write_text(LICENSE, encoding="utf-8")
     files = sorted(p for p in out_dir.rglob("*") if p.is_file() and p.name != "MANIFEST.json")
     manifest.files = {str(p.relative_to(out_dir)): _file_hash(p) for p in files}
@@ -401,6 +425,7 @@ def export_dataport(
                 "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
                 "git_sha": _git_sha(),
                 "include_text": include_text,
+                "words": words,
                 "counts": manifest.counts,
                 "files": manifest.files,
             },

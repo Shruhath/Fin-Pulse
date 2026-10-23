@@ -115,3 +115,36 @@ def test_nli_maps_the_models_own_label_names_to_entail_neutral_contradict(tmp_pa
     probs = Nli(str(directory), device="cpu").predict([("the fine was four lakh", "the fine was four lakh")])
     assert probs[0].argmax() == 0 and probs[0, 0] > 0.99  # reported as the first column: entailment
     assert probs.sum() == pytest.approx(1.0, abs=1e-5)
+
+
+def test_integrated_gradients_add_up_to_the_score_difference_and_mark_the_company(tmp_path):
+    from finpulse.sentiment.explain import explain
+
+    model = FinBert.from_base(str(tiny.classifier(tmp_path / "fb", PROSUS)), device="cpu")
+    text = "Yes Bank slumped after a fraud probe and a penalty"
+    result = explain(model, (text, 0, 8), steps=128)
+    assert result.label in LABELS and sum(result.probabilities.values()) == pytest.approx(1.0, abs=1e-5)
+    assert sum(w.entity for w in result.words) == 2  # "Yes Bank" sits between the markers
+    assert not result.words[-1].entity  # the last word is outside the markers
+    assert max(abs(w.weight) for w in result.words) == pytest.approx(1.0)
+    assert result.convergence < 0.1  # completeness: the attributions sum to f(x) - f(baseline)
+    other = next(name for name in LABELS if name != result.label)
+    assert explain(model, (text, 0, 8), steps=16, target=other).label == other
+
+
+def test_a_run_of_ruling_is_one_word_and_a_mention_cut_off_by_the_window_is_refused(tmp_path):
+    import numpy as np
+
+    from finpulse.sentiment.explain import _words, explain
+
+    words = _words(
+        ["[CLS]", "order", "-", "-", "-", "[E]", "yes", "[/E]", "paid", "[SEP]"],
+        np.array([0, 1, 1, 1, 1, 0, 2, 0, -1, 0.0]),
+    )
+    assert [w.text for w in words] == ["order", "-", "yes", "paid"] and words[1].weight == pytest.approx(1.0)
+    model = FinBert.from_base(str(tiny.classifier(tmp_path / "fb", PROSUS)), device="cpu")
+    text = (
+        " ".join(["-" * 60] * 40) + " Yes Bank slumped"
+    )  # ruled lines push the company past the token limit
+    with pytest.raises(ValueError, match="outside the first 160 tokens"):
+        explain(model, (text, text.index("Yes"), text.index("Yes") + 8))

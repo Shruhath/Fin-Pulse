@@ -1,0 +1,10 @@
+{
+  "model": "finbert-entity@c4abaaad",
+  "mentions": 120.0,
+  "explained": 0.9916666666666667,
+  "completenessMedian": 0.024296116390247126,
+  "completenessP95": 0.37994206372800327,
+  "secondsMedian": 2.8101737209944986,
+  "topWordOutsideCompany": 0.9159663865546218,
+  "steps": 48.0
+}

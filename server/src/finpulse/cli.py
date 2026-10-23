@@ -263,7 +263,7 @@ def _export(a: argparse.Namespace) -> int:
     out = Path(a.out)
     with session_scope() as s:
         names = Path(a.names).read_text(encoding="utf-8").splitlines() if a.names else []
-        m = export_dataport(s, out, include_text=a.include_text, extra_names=names)
+        m = export_dataport(s, out, include_text=a.include_text, extra_names=names, words=not a.no_words)
     print(f"wrote {out} ({'with' if m.include_text else 'without'} document text)")
     print("  " + ", ".join(f"{k}={v}" for k, v in m.counts.items()))
     return 0
@@ -312,6 +312,95 @@ def _ectsum(a: argparse.Namespace) -> int:
     for name, m in scores.items():
         shown = {k: round(v, 3) for k, v in m.items()}
         print(f"  {name:<8} {shown}")
+    return 0
+
+
+def _components(a: argparse.Namespace) -> int:
+    import json
+
+    from finpulse.core.settings import get_settings as settings
+    from finpulse.eval.components import record_components
+
+    nli = None
+    if not a.no_nli:
+        from finpulse.verify.nli import Nli
+
+        nli = Nli(device=a.device)
+    with session_scope() as s:
+        report = record_components(s, nli, settings().benchmark_dir)
+    print(json.dumps(report, indent=2))
+    return 0
+
+
+def _baselines(a: argparse.Namespace) -> int:
+    import json
+
+    from finpulse.core.settings import get_settings as settings
+
+    cfg = settings()
+    if a.extend:
+        from finpulse.eval.modelpapers import extend_sentiment_metrics
+
+        with session_scope() as s:
+            for line in extend_sentiment_metrics(s, cfg.benchmark_dir, device=a.device):
+                print("  extended", line)
+        return 0
+    from finpulse.eval.modelpapers import run_model_papers
+
+    report = run_model_papers(cfg.benchmark_dir, cfg.results_dir, device=a.device)
+    print(json.dumps({k: v for k, v in report.items() if k in ("sizes", "so_pmi_sentfin_test")}, indent=2))
+    return 0
+
+
+def _ablation(a: argparse.Namespace) -> int:
+    import json
+
+    from finpulse.core.settings import get_settings as settings
+    from finpulse.eval.ablation import run_ablation
+
+    which = set(a.which)
+    encoder = None
+    if "retrieval" in which:
+        from finpulse.embed.encoder import Embedder
+
+        encoder = Embedder(device="cpu")
+    with session_scope() as s:
+        report = run_ablation(s, settings().results_dir, which=which, encoder=encoder)
+    print(json.dumps(report, indent=2))
+    return 0
+
+
+def _explain_stats(a: argparse.Namespace) -> int:
+    import json
+    from pathlib import Path
+
+    from finpulse.core.settings import get_settings as settings
+    from finpulse.pipeline.sentiment import load_scoring_model
+    from finpulse.sentiment.explain import explanation_stats
+    from finpulse.sentiment.finbert import FinBert
+
+    model = load_scoring_model(device=a.device)
+    if not isinstance(model, FinBert):
+        print("explanations need the fine-tuned FinBERT", file=sys.stderr)
+        return 1
+    with session_scope() as s:
+        stats = explanation_stats(s, model, n=a.n)
+    out = Path(settings().results_dir) / "xai"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "integrated-gradients.json").write_text(
+        json.dumps({"model": model.version, **stats}, indent=2) + "\n"
+    )
+    print(json.dumps(stats, indent=2))
+    return 0
+
+
+def _synthetic(a: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from finpulse.export.synthetic import build_synthetic
+
+    counts = build_synthetic(Path(a.out))
+    print(f"wrote {a.out}: " + ", ".join(f"{k}={v}" for k, v in counts.items()))
     return 0
 
 
@@ -490,6 +579,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--include-text", action="store_true", help="include document text (needs the publishers' permission)"
     )
     ex.add_argument(
+        "--no-words",
+        action="store_true",
+        help="also leave out titles, event arguments and claim text, so nothing quotes an order",
+    )
+    ex.add_argument(
         "--names",
         help="a text file, one name per line, of individuals to remove from titles, events and claims "
         "(besides the person entities); keep it out of the repository",
@@ -503,6 +597,34 @@ def build_parser() -> argparse.ArgumentParser:
     ec.add_argument("--n", type=int, default=60)
     ec.add_argument("--no-nli", action="store_true")
     ec.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+
+    cp = add(
+        "components",
+        _components,
+        "measure the claim checker, event extraction and speech, and add rows to the Evaluation page",
+    )
+    cp.add_argument("--no-nli", action="store_true")
+    cp.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+
+    bl = add(
+        "baselines",
+        _baselines,
+        "compare with the two model papers, or --extend the stored sentiment rows",
+    )
+    bl.add_argument(
+        "--extend", action="store_true", help="add precision, recall and AUC to the stored sentiment rows"
+    )
+    bl.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
+
+    xs = add("explain-stats", _explain_stats, "measure Integrated Gradients on a sample of real mentions")
+    xs.add_argument("--n", type=int, default=120)
+    xs.add_argument("--device", default="cpu", choices=["cpu", "cuda"])
+
+    sy = add("synthetic", _synthetic, "write the fictional benchmark (FinPulse Synthetic Filings v1)")
+    sy.add_argument("--out", default="data/export/finpulse-synthetic-v1")
+
+    ab = add("ablation", _ablation, "remove one design choice at a time (retrieval variants, entity marking)")
+    ab.add_argument("which", nargs="+", choices=["retrieval", "marking"])
 
     ask = add("ask", _ask, "ask a question of the corpus, or --eval to measure question answering")
     ask.add_argument("question", nargs="?")

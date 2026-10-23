@@ -82,6 +82,8 @@ export type Claim = S["Claim"];
 export type Summary = S["Summary"];
 export type DocumentDetail = Omit<S["DocumentDetail"], "events"> & { events: EventRecord[] };
 export type Mention = S["Mention"];
+export type Explanation = S["Explanation"];
+export type ExplainWord = S["ExplainWord"];
 export type CompanyDetail = Omit<S["CompanyDetail"], "events"> & { events: EventRecord[] };
 
 /* ---------- evaluation ---------- */

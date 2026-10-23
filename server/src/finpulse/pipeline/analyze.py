@@ -169,7 +169,7 @@ def run_analysis(session: Session, job: Job) -> None:
 
     if doc.status == "analysed":
         for key in ("parse", "entities", "sentiment", "events", "summary", "verify"):
-            _skip(session, job, key, "document was already analysed")
+            set_stage(session, job, key, "done", ms=0, note="already analysed")
         finish(session, job)
         return
 
