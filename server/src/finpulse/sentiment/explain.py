@@ -119,3 +119,60 @@ def _words(pieces: list[str], attribution: np.ndarray) -> list[Word]:
             out.append((piece, float(weight), inside))
     peak = max((abs(w) for _, w, _ in out), default=0.0) or 1.0
     return [Word(text=t, weight=w / peak, entity=e) for t, w, e in out]
+
+
+def explanation_stats(
+    session, model: FinBert, n: int = 120, steps: int = STEPS, seed: int = 7
+) -> dict[str, float]:
+    """How well Integrated Gradients behaves on real mentions: completeness error and sharpness.
+
+    Samples `n` scored company mentions of the collected corpus. A mention the model cannot read (the
+    company falls outside its 160 tokens) is counted, not explained. Returns the share explained, the
+    median and 95th-percentile completeness error, the median seconds per mention, and how often the
+    single most influential word lies outside the company's own name.
+    """
+    import random
+    import statistics
+    import time
+
+    from sqlalchemy import select
+
+    from finpulse.db.models import Document, Mention, MentionSentiment
+
+    rows = session.execute(
+        select(Mention.doc_id, Mention.char_start, Mention.char_end)
+        .join(MentionSentiment, MentionSentiment.mention_id == Mention.id)
+        .join(Document, Document.id == Mention.doc_id)
+        .where(Document.is_submission.is_(False))
+    ).all()
+    random.Random(seed).shuffle(rows)
+    texts: dict[int, str] = {}
+    errors: list[float] = []
+    seconds: list[float] = []
+    outside = unreadable = 0
+    for doc_id, start, end in rows:
+        if len(errors) + unreadable >= n:
+            break
+        if doc_id not in texts:
+            texts[doc_id] = session.get(Document, doc_id).clean_text
+        t0 = time.monotonic()
+        try:
+            result = explain(model, (texts[doc_id], start, end), steps=steps)
+        except ValueError:
+            unreadable += 1
+            continue
+        seconds.append(time.monotonic() - t0)
+        errors.append(result.convergence)
+        top = max(result.words, key=lambda w: abs(w.weight))
+        outside += not top.entity
+    errors.sort()
+    done = len(errors)
+    return {
+        "mentions": float(done + unreadable),
+        "explained": done / (done + unreadable) if done + unreadable else 0.0,
+        "completenessMedian": statistics.median(errors) if errors else 0.0,
+        "completenessP95": errors[int(0.95 * (done - 1))] if errors else 0.0,
+        "secondsMedian": statistics.median(seconds) if seconds else 0.0,
+        "topWordOutsideCompany": outside / done if done else 0.0,
+        "steps": float(steps),
+    }

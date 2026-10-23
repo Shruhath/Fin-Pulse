@@ -274,3 +274,22 @@ def test_a_document_analysed_through_the_analyze_page_is_not_exported(db, tmp_pa
     db.flush()
     export_dataport(db, tmp_path / "pkg")
     assert len(pq.read_table(tmp_path / "pkg" / "documents.parquet")) == 1
+
+
+def test_the_words_free_package_has_no_title_event_arguments_or_claim_text(db, tmp_path):
+    _seed(db)
+    export_dataport(db, tmp_path / "pkg", words=False)
+    out = tmp_path / "pkg"
+    (row,) = pq.read_table(out / "documents.parquet").to_pylist()
+    assert row["title"] is None and row["text"] is None and row["sha256"] == "a" * 64
+    (event,) = _lines(out / "events_silver.jsonl")
+    assert event["arguments"] is None and event["type"] == "SEBI Penalty"
+    (summary,) = _lines(out / "summaries_silver.jsonl")
+    (claim,) = summary["claims"]
+    assert (
+        claim["text"] is None
+        and claim["verification"] == "entailed"
+        and claim["nli_entail"] == pytest.approx(0.9)
+    )
+    assert json.loads((out / "MANIFEST.json").read_text())["words"] is False
+    assert "empty (null)" in (out / "README.md").read_text()
